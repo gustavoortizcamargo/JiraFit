@@ -85,7 +85,7 @@ public class GeminiAIService : IAIService
             var jsonPayload = JsonSerializer.Serialize(requestPayload);
             var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
-            var url = $"v1beta/models/gemini-1.5-flash:generateContent?key={apiKey}";
+            var url = $"v1beta/models/gemini-2.5-flash:generateContent?key={apiKey}";
             
             var response = await geminiClient.PostAsync(url, content, cancellationToken);
             var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
