@@ -1,4 +1,8 @@
 using JiraFit.Application.Interfaces;
+using JiraFit.Domain.Entities;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace JiraFit.API.BackgroundServices;
 
@@ -28,36 +32,122 @@ public class WebhookBackgroundService : BackgroundService
                 {
                     _logger.LogInformation($"Processing webhook payload for user {payload.UserPhoneNumber}");
 
-                    // Need to create a new scope for scoped services (DbContext, Repositories, etc)
                     using var scope = _serviceProvider.CreateScope();
                     var aiService = scope.ServiceProvider.GetRequiredService<IAIService>();
                     var messagingService = scope.ServiceProvider.GetRequiredService<IMessagingService>();
                     var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+                    var mealRepository = scope.ServiceProvider.GetRequiredService<IMealRepository>();
 
-                    // Basic Logic flow:
-                    // 1. Analyse using AI
-                    var result = await aiService.AnalyzeMealAsync(payload, stoppingToken);
+                    // 1. Fetch or Create User Profile
+                    var currentUser = await userRepository.GetByPhoneNumberAsync(payload.UserPhoneNumber, stoppingToken);
+                    if (currentUser == null)
+                    {
+                        currentUser = new User(payload.UserPhoneNumber);
+                        await userRepository.AddAsync(currentUser, stoppingToken);
+                        await userRepository.SaveChangesAsync(stoppingToken); // Commit to get an ID
+                    }
+
+                    // 2. Exact Command Interceptor
+                    string text = payload.TextContent?.Trim().ToLowerInvariant() ?? "";
+                    
+                    if (text == "ajuda")
+                    {
+                        var msg = "🤖 *Comandos do JiraFit*:\n\n" +
+                                  "• `resumo` ➜ Veja todas as calorias e refeições consumidas hoje.\n" +
+                                  "• `apagar` ➜ Remove a última refeição que você gravou.\n" +
+                                  "• `ajuda` ➜ Mostra esta mensagem novamente.\n\n" +
+                                  "📸 *Dica*: Envie uma foto do seu prato, ou um áudio/texto dizendo o que comeu!";
+                        await messagingService.SendMessageAsync(payload.UserPhoneNumber, msg, stoppingToken);
+                        continue;
+                    }
+                    if (text == "apagar")
+                    {
+                        var deleted = await mealRepository.DeleteLatestMealAsync(currentUser.Id, stoppingToken);
+                        if (deleted)
+                        {
+                            await mealRepository.SaveChangesAsync(stoppingToken);
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, "✅ Última refeição deletada com sucesso!", stoppingToken);
+                        }
+                        else
+                        {
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, "Não encontrei nenhuma refeição sua para deletar hoje.", stoppingToken);
+                        }
+                        continue;
+                    }
+                    if (text == "resumo")
+                    {
+                        var meals = await mealRepository.GetDailyMealsAsync(currentUser.Id, DateTime.UtcNow, stoppingToken);
+                        if (!meals.Any())
+                        {
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, "Você ainda não registrou nenhuma refeição hoje.", stoppingToken);
+                        }
+                        else
+                        {
+                            var totalCals = meals.Sum(m => m.Calories);
+                            var totalProt = meals.Sum(m => m.Proteins);
+                            var totalCarbs = meals.Sum(m => m.Carbs);
+                            var totalFats = meals.Sum(m => m.Fats);
+                            
+                            var targetTdee = currentUser.Tdee > 0 ? $"{currentUser.Tdee:F0}" : "?";
+                            
+                            var msg = $"📊 *Resumo do seu Dia:*\n\n" +
+                                      $"Calorias: {totalCals:F0} / {targetTdee} kcal\n\n" +
+                                      $"🥩 Proteínas: {totalProt:F0}g\n" +
+                                      $"🥖 Carboidratos: {totalCarbs:F0}g\n" +
+                                      $"🥑 Gorduras: {totalFats:F0}g\n\n" +
+                                      $"*Refeições gravadas hoje ({meals.Count}):*\n";
+                                      
+                            foreach(var m in meals)
+                            {
+                                msg += $"• {m.Calories:F0} kcal às {m.Timestamp:HH:mm}h\n";
+                            }
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, msg, stoppingToken);
+                        }
+                        continue;
+                    }
+
+                    // 3. Multimodal AI Processing
+                    var result = await aiService.AnalyzeMealAsync(payload, currentUser, stoppingToken);
 
                     if (result.IsSuccess)
                     {
                         var analysis = result.Value;
 
-                        // 2. Reply back
-                        string responseMsg = $"🔍 Análise Nutricional:\n" +
-                                             $"Calorias: {analysis.Calories} kcal\n" +
-                                             $"Proteínas: {analysis.Proteins}g\n" +
-                                             $"Carboidratos: {analysis.Carbs}g\n" +
-                                             $"Gorduras: {analysis.Fats}g\n\n" +
-                                             $"Feedback da IA: {analysis.Feedback}";
+                        // Onboarding updates:
+                        if (!string.IsNullOrEmpty(analysis.ExtractedName) || analysis.ExtractedWeight > 0 || analysis.ExtractedHeight > 0)
+                        {
+                            currentUser.UpdateProfile(analysis.ExtractedName, analysis.ExtractedWeight, analysis.ExtractedHeight);
+                            await userRepository.SaveChangesAsync(stoppingToken);
+                        }
+
+                        string responseMsg;
+
+                        // Refeição rastreada
+                        if (analysis.Calories > 0)
+                        {
+                            var meal = new Meal(currentUser.Id, payload.MediaUrl, payload.TextContent, analysis.Calories, analysis.Proteins, analysis.Carbs, analysis.Fats, analysis.Feedback);
+                            await mealRepository.AddAsync(meal, stoppingToken);
+                            await mealRepository.SaveChangesAsync(stoppingToken);
+
+                            responseMsg = $"🔍 *Análise Nutricional:*\n" +
+                                          $"Calorias: {analysis.Calories} kcal\n" +
+                                          $"Proteínas: {analysis.Proteins}g\n" +
+                                          $"Carboidratos: {analysis.Carbs}g\n" +
+                                          $"Gorduras: {analysis.Fats}g\n\n" +
+                                          $"💡 {analysis.Feedback}";
+                        }
+                        else
+                        {
+                            // Apenas uma resposta conversacional
+                            responseMsg = analysis.Feedback;
+                        }
 
                         await messagingService.SendMessageAsync(payload.UserPhoneNumber, responseMsg, stoppingToken);
-                        
-                        // TODO: Save to MealRepository
                     }
                     else
                     {
                         await messagingService.SendMessageAsync(payload.UserPhoneNumber, 
-                            "Desculpe, não consegui analisar sua refeição no momento.", stoppingToken);
+                            "Desculpe, não consegui compreender essa mensagem ou áudio. Tente novamente!", stoppingToken);
                     }
                 }
                 catch (Exception ex)

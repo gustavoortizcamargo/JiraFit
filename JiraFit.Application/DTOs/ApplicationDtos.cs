@@ -3,9 +3,9 @@ namespace JiraFit.Application.DTOs;
 public class MealInputDto
 {
     public string UserPhoneNumber { get; set; } = string.Empty;
-    public string? ImageUrl { get; set; }
+    public string? MediaUrl { get; set; }
+    public string? MediaType { get; set; } // e.g. "image/jpeg" or "audio/ogg"
     public string? TextContent { get; set; }
-    public string? AudioContentMode { get; set; } // If Twilio provides audio transcript or generic
 }
 
 public class NutritionalAnalysisDto
@@ -15,6 +15,11 @@ public class NutritionalAnalysisDto
     public double Carbs { get; set; }
     public double Fats { get; set; }
     public string Feedback { get; set; } = string.Empty;
+    
+    // Extracted context for Onboarding/Update
+    public string? ExtractedName { get; set; }
+    public double? ExtractedWeight { get; set; }
+    public double? ExtractedHeight { get; set; }
 }
 
 public class UserRegistrationDto

@@ -14,5 +14,6 @@ public interface IMealRepository
 {
     Task AddAsync(Meal meal, CancellationToken cancellationToken = default);
     Task<List<Meal>> GetDailyMealsAsync(Guid userId, DateTime date, CancellationToken cancellationToken = default);
+    Task<bool> DeleteLatestMealAsync(Guid userId, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -29,6 +29,20 @@ public class MealRepository : IMealRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<bool> DeleteLatestMealAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var latestMeal = await _context.Meals
+            .Where(m => m.UserId == userId)
+            .OrderByDescending(m => m.Timestamp)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestMeal == null)
+            return false;
+
+        _context.Meals.Remove(latestMeal);
+        return true;
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         await _context.SaveChangesAsync(cancellationToken);

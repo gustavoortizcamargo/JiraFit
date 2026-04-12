@@ -22,7 +22,7 @@ public class GeminiAIService : IAIService
         _logger = logger;
     }
 
-    public async Task<Result<NutritionalAnalysisDto>> AnalyzeMealAsync(MealInputDto input, CancellationToken cancellationToken = default)
+    public async Task<Result<NutritionalAnalysisDto>> AnalyzeMealAsync(MealInputDto input, JiraFit.Domain.Entities.User currentUser, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -38,18 +38,18 @@ public class GeminiAIService : IAIService
                 parts.Add(new { text = input.TextContent });
             }
 
-            // 2. Image Fetching from Twilio
-            if (!string.IsNullOrEmpty(input.ImageUrl))
+            // 2. Media Fetching from Twilio (Image or Audio)
+            if (!string.IsNullOrEmpty(input.MediaUrl))
             {
-                var base64Image = await DownloadTwilioImageAsBase64Async(input.ImageUrl, cancellationToken);
-                if (base64Image != null)
+                var base64Media = await DownloadTwilioMediaAsBase64Async(input.MediaUrl, cancellationToken);
+                if (base64Media != null)
                 {
                     parts.Add(new
                     {
                         inline_data = new
                         {
-                            mime_type = "image/jpeg",
-                            data = base64Image
+                            mime_type = !string.IsNullOrEmpty(input.MediaType) ? input.MediaType : "image/jpeg",
+                            data = base64Media
                         }
                     });
                 }
@@ -58,6 +58,12 @@ public class GeminiAIService : IAIService
             if (parts.Count == 0)
                 return Result.Failure<NutritionalAnalysisDto>("Provide text or an image.");
 
+            var userContext = $"[Contexto do Usuário atual] Nome salvo: {(string.IsNullOrEmpty(currentUser.Name) ? "Desconhecido" : currentUser.Name)}. Peso: {(currentUser.Weight > 0 ? currentUser.Weight + "kg" : "Desconhecido")}. Altura: {(currentUser.Height > 0 ? currentUser.Height + "cm" : "Desconhecido")}. ";
+
+            var systemPrompt = "Você é o JiraFit, um assistente nutricional via WhatsApp. O usuário pode enviar áudios, imagens ou textos. " +
+                               userContext +
+                               "SE a mensagem contiver comida (refeição), extraia rigorosamente os macros no formato JSON: 'Calories' (número), 'Proteins' (número), 'Carbs' (número), 'Fats' (número). SE o usuário preencheu essas macros e não forneceu mais nada, retorne o JSON preenchido. AGORA, SE a mensagem do usuário for ele dizendo o próprio NOME, PESO (kg) ou ALTURA (cm), você NÃO extrai macros, mas coloca os dados que percebeu nas propriedades do JSON: 'ExtractedName' (string), 'ExtractedWeight' (número), 'ExtractedHeight' (número). Se houver dados faltantes (ex: o usuário não tem nome ou peso ainda), fale gentilmente com ele através da chave 'Feedback' (string) pedindo essas informações. Retorne estritamente um objeto JSON sem blocos de código extra.";
+
             // 3. Prepare Gemini Request Payload
             var requestPayload = new
             {
@@ -65,7 +71,7 @@ public class GeminiAIService : IAIService
                 {
                     parts = new[]
                     {
-                        new { text = "Você é um assistente pessoal de nutrição altamente inteligente chamado JiraFit. Avalie a refeição fornecida pelo usuário (seja por texto ou imagem). Retorne ESTRITAMENTE um objeto JSON válido, sem propriedades adicionais e sem formatação Markdown markdown, contendo estas chaves exatamente: 'Calories' (número inteiro ou decimal), 'Proteins' (g), 'Carbs' (g), 'Fats' (g), e 'Feedback' (string com um breve tom motivacional, profissional e rápido sobre a qualidade da refeição)." }
+                        new { text = systemPrompt }
                     }
                 },
                 contents = new[]
@@ -123,7 +129,7 @@ public class GeminiAIService : IAIService
         }
     }
 
-    private async Task<string?> DownloadTwilioImageAsBase64Async(string mediaUrl, CancellationToken cancellationToken)
+    private async Task<string?> DownloadTwilioMediaAsBase64Async(string mediaUrl, CancellationToken cancellationToken)
     {
         try
         {

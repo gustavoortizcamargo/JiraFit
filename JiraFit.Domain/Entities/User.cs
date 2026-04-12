@@ -6,7 +6,7 @@ public class User
 {
     public Guid Id { get; private set; }
     public string PhoneNumber { get; private set; } // Identifier for Whatsapp
-    public string Name { get; private set; }
+    public string? Name { get; private set; }
     public double Weight { get; private set; } // kg
     public double Height { get; private set; } // cm
     public int Age { get; private set; }
@@ -25,30 +25,25 @@ public class User
 
     protected User() { } // For EF Core
 
-    public User(string phoneNumber, string name, double weight, double height, int age, Gender gender, Objective objective, bool isChildishPalate = false)
+    // Only Phone Number initially provided
+    public User(string phoneNumber)
     {
         Id = Guid.NewGuid();
         PhoneNumber = phoneNumber;
-        Name = name;
-        Weight = weight;
-        Height = height;
-        Age = age;
-        Gender = gender;
-        Objective = objective;
-        IsChildishPalate = isChildishPalate;
-
-        CalculateMetabolicRates();
+        Objective = Objective.Maintenance; // Default logic
     }
 
-    public void UpdateProfile(double weight, double height, int age, Objective objective, bool isChildishPalate)
+    public void UpdateProfile(string? name, double? weight, double? height)
     {
-        Weight = weight;
-        Height = height;
-        Age = age;
-        Objective = objective;
-        IsChildishPalate = isChildishPalate;
+        if (!string.IsNullOrEmpty(name)) Name = name;
+        if (weight.HasValue && weight > 0) Weight = weight.Value;
+        if (height.HasValue && height > 0) Height = height.Value;
 
-        CalculateMetabolicRates();
+        if (Weight > 0 && Height > 0)
+        {
+            if (Age == 0) Age = 30; // Default fallback for formula
+            CalculateMetabolicRates();
+        }
     }
 
     private void CalculateMetabolicRates()
@@ -63,10 +58,7 @@ public class User
             Bmr = 447.593 + (9.247 * Weight) + (3.098 * Height) - (4.330 * Age);
         }
 
-        // Default sedentary multiplier for VET (can be improved later with activity levels)
         double activityMultiplier = 1.2; 
-        
-        // Adjust based on Objective
         double tdeeBase = Bmr * activityMultiplier;
 
         Tdee = Objective switch

@@ -5,7 +5,7 @@ namespace JiraFit.Application.Interfaces;
 
 public interface IAIService
 {
-    Task<Result<NutritionalAnalysisDto>> AnalyzeMealAsync(MealInputDto input, CancellationToken cancellationToken = default);
+    Task<Result<NutritionalAnalysisDto>> AnalyzeMealAsync(MealInputDto input, JiraFit.Domain.Entities.User currentUser, CancellationToken cancellationToken = default);
 }
 
 public interface IMessagingService

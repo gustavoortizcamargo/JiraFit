@@ -25,16 +25,20 @@ public class WebhookController : ControllerBase
         var numMediaStr = form["NumMedia"].ToString();
         
         string? mediaUrl = null;
+        string? mediaType = null;
+
         if (int.TryParse(numMediaStr, out int numMedia) && numMedia > 0)
         {
             mediaUrl = form["MediaUrl0"].ToString();
+            mediaType = form["MediaContentType0"].ToString();
         }
 
         var dto = new MealInputDto
         {
             UserPhoneNumber = fromNumber,
             TextContent = bodyMsg,
-            ImageUrl = mediaUrl
+            MediaUrl = mediaUrl,
+            MediaType = mediaType
         };
 
         // Enqueue the request for background processing
