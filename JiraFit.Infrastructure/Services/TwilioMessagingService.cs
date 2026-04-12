@@ -18,7 +18,7 @@ public class TwilioMessagingService : IMessagingService
         _logger = logger;
     }
 
-    public async Task SendMessageAsync(string toPhoneNumber, string message, CancellationToken cancellationToken = default)
+    public async Task SendMessageAsync(string toPhoneNumber, string message, string? mediaUrl = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -33,7 +33,7 @@ public class TwilioMessagingService : IMessagingService
             {
                 _logger.LogWarning("Twilio credentials (AccountSid, AuthToken or FromNumber) are missing. Skipping real send.");
                 // Fallback to console if missing config for local testing
-                Console.WriteLine($"[TWILIO MOCK] Sending to {toPhoneNumber}: {message}");
+                Console.WriteLine($"[TWILIO MOCK] Sending to {toPhoneNumber}: {message} | MediaUrl: {mediaUrl}");
                 return;
             }
 
@@ -48,6 +48,11 @@ public class TwilioMessagingService : IMessagingService
                 { "From", fromNumber },
                 { "Body", message }
             };
+
+            if (!string.IsNullOrEmpty(mediaUrl))
+            {
+                requestData.Add("MediaUrl", mediaUrl);
+            }
 
             var content = new FormUrlEncodedContent(requestData);
             

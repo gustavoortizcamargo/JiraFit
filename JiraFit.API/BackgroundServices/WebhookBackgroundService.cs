@@ -55,16 +55,82 @@ public class WebhookBackgroundService : BackgroundService
                         var msg = "🤖 *Guia Rápido do JiraFit*\n" +
                                   "Seu Personal Nutricional no WhatsApp! Veja como extrair o máximo:\n\n" +
                                   "📋 *Comandos Específicos:*\n" +
-                                  "• `resumo` ➜ Traz a lista e somatória calórica do seu dia (Ideal para ler no fim da noite).\n" +
+                                  "• `resumo` ➜ Traz a lista e somatória calórica do seu dia.\n" +
+                                  "• `grafico` ➜ Envia a imagem do seu gráfico calórico dos últimos 7 dias.\n" +
                                   "• `alarmes` ➜ Lista todos os alarmes ativos.\n" +
                                   "• `apagar` ➜ Remove a última refeição gravada por engano hoje.\n\n" +
-                                  "🎙️ *Mágica da Inteligência Artificial (Ações Livres):*\n" +
-                                  "• *Escreva ou grave Áudio*: _\"Comi 200g de frango com batata doce\"_ (O bot deduzirá os macros para você!).\n" +
-                                  "• *Mande uma Foto*: O JiraFit analisará a imagem do prato cru para encontrar as calorias.\n" +
-                                  "• *Crie Avisos*: _\"Me lembre de jantar sempre às 20h!\"_ (O JiraFit chamará você lá!).\n" +
+                                  "🎙️ *Mágica da IA (Ações Livres):*\n" +
+                                  "• *Escreva ou grave Áudio*: _\"Comi 200g de frango com batata doce\"_.\n" +
+                                  "• *Mande uma Foto*: O bot analisará imagem do prato para encontrar as calorias.\n" +
+                                  "• *Crie Avisos*: _\"Me lembre de jantar sempre às 20h!\"_.\n" +
                                   "• *Atualize seu Perfil*: _\"Meu peso atual é 90kg e tenho 180cm\"_.\n\n" +
                                   "Dúvidas extras? Apenas converse com a IA! 💪🍎";
-                        await messagingService.SendMessageAsync(payload.UserPhoneNumber, msg, stoppingToken);
+                        await messagingService.SendMessageAsync(payload.UserPhoneNumber, msg, null, stoppingToken);
+                        continue;
+                    }
+                    if (text == "grafico")
+                    {
+                        var endDate = DateTime.UtcNow.AddHours(-3); // Horário de Brasília
+                        var meals = await mealRepository.GetWeeklyMealsAsync(currentUser.Id, DateTime.UtcNow, stoppingToken);
+
+                        if (!meals.Any())
+                        {
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, "Você ainda não registrou nenhuma refeição nos últimos dias para gerar um gráfico.", null, stoppingToken);
+                            continue;
+                        }
+
+                        // Agrupar por data local (Brasília)
+                        var grouped = meals
+                            .GroupBy(m => m.Timestamp.AddHours(-3).Date)
+                            .OrderBy(g => g.Key)
+                            .ToList();
+
+                        var labels = new List<string>();
+                        var data = new List<double>();
+                        
+                        // Preenche os últimos 7 dias 
+                        for (int i = 6; i >= 0; i--)
+                        {
+                            var targetDate = endDate.Date.AddDays(-i);
+                            var dayStr = targetDate.ToString("dd/MM");
+                            labels.Add(dayStr);
+                            
+                            var sumCals = grouped.FirstOrDefault(g => g.Key == targetDate)?.Sum(m => m.Calories) ?? 0;
+                            data.Add(sumCals);
+                        }
+
+                        var labelsStr = string.Join(",", labels.Select(l => $"'{l}'")); // '12/04','13/04'...
+                        var dataStr = string.Join(",", data); // 1500,2000...
+                        var userTdee = currentUser.Tdee > 0 ? currentUser.Tdee : 2000;
+
+                        var quickChartJson = $@"{{
+                            type: 'bar',
+                            data: {{
+                                labels: [{labelsStr}],
+                                datasets: [
+                                    {{
+                                        label: 'Calorias Consumidas',
+                                        data: [{dataStr}],
+                                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                        borderColor: 'rgb(54, 162, 235)',
+                                        borderWidth: 1
+                                    }},
+                                    {{
+                                        type: 'line',
+                                        label: 'Meta Diária',
+                                        data: [{string.Join(",", data.Select(_ => userTdee))}],
+                                        borderColor: 'rgba(255, 99, 132, 1)',
+                                        borderWidth: 2,
+                                        fill: false
+                                    }}
+                                ]
+                            }},
+                            options: {{ title: {{ display: true, text: 'Evolução Calorias Semanais' }} }}
+                        }}";
+
+                        var chartUrl = $"https://quickchart.io/chart?w=600&h=400&c={Uri.EscapeDataString(quickChartJson)}";
+
+                        await messagingService.SendMessageAsync(payload.UserPhoneNumber, "📊 Seu levantamento calórico dos últimos 7 dias está no gráfico acima! Parabéns pelo foco!", chartUrl, stoppingToken);
                         continue;
                     }
                     if (text == "alarmes")

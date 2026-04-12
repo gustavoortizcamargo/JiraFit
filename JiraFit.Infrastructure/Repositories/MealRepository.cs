@@ -29,6 +29,16 @@ public class MealRepository : IMealRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<List<Meal>> GetWeeklyMealsAsync(Guid userId, DateTime endDate, CancellationToken cancellationToken = default)
+    {
+        var endOfDay = endDate.Date.AddDays(1);
+        var startOfWeek = endOfDay.AddDays(-7);
+        
+        return await _context.Meals
+            .Where(m => m.UserId == userId && m.Timestamp >= startOfWeek && m.Timestamp < endOfDay)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> DeleteLatestMealAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var latestMeal = await _context.Meals
