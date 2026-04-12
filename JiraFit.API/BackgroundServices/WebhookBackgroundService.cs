@@ -142,6 +142,11 @@ public class WebhookBackgroundService : BackgroundService
                             responseMsg = analysis.Feedback;
                         }
 
+                        if (string.IsNullOrWhiteSpace(responseMsg))
+                        {
+                            responseMsg = "✅ Dados processados e salvos com sucesso! O que vamos comer agora?";
+                        }
+
                         await messagingService.SendMessageAsync(payload.UserPhoneNumber, responseMsg, stoppingToken);
                     }
                     else
