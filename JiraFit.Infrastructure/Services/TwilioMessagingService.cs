@@ -51,7 +51,7 @@ public class TwilioMessagingService : IMessagingService
 
             var content = new FormUrlEncodedContent(requestData);
             
-            var url = $"2010-04-01/Accounts/{accountSid}/Messages.json";
+            var url = $"https://api.twilio.com/2010-04-01/Accounts/{accountSid}/Messages.json";
             var response = await twilioClient.PostAsync(url, content, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
