@@ -27,10 +27,12 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    if (!string.IsNullOrEmpty(connectionString))
+    if (string.IsNullOrEmpty(connectionString))
     {
-        options.UseNpgsql(connectionString);
+        throw new InvalidOperationException("⚠️ CRITICAL ERROR: The connection string 'DATABASE_URL' is missing! Please ensure you linked the PostgreSQL database to your API in the Railway Variables tab.");
     }
+    
+    options.UseNpgsql(connectionString);
 });
 
 // Authentication (JWT)
