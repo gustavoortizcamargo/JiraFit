@@ -21,11 +21,17 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Infrastructure - EF Core
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? Environment.GetEnvironmentVariable("DATABASE_URL"); // Fallback for Railway
+var connectionUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+if (!string.IsNullOrEmpty(connectionUrl))
+{
+    // Convert Railway Postgres URL (postgres://user:pass@host:port/db) to Npgsql format
+    var databaseUri = new Uri(connectionUrl);
+    var userInfo = databaseUri.UserInfo.Split(':');
+    
+    connectionString = $"Host={databaseUri.Host};Port={databaseUri.Port};Database={databaseUri.LocalPath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};Ssl Mode=Disable;";
+}
 {
     if (string.IsNullOrEmpty(connectionString))
     {
