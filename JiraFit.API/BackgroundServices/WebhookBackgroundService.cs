@@ -129,12 +129,16 @@ public class WebhookBackgroundService : BackgroundService
                             await mealRepository.AddAsync(meal, stoppingToken);
                             await mealRepository.SaveChangesAsync(stoppingToken);
 
-                            responseMsg = $"🔍 *Análise Nutricional:*\n" +
-                                          $"Calorias: {analysis.Calories} kcal\n" +
-                                          $"Proteínas: {analysis.Proteins}g\n" +
-                                          $"Carboidratos: {analysis.Carbs}g\n" +
-                                          $"Gorduras: {analysis.Fats}g\n\n" +
-                                          $"💡 {analysis.Feedback}";
+                            var displayFeedback = string.IsNullOrWhiteSpace(analysis.Feedback)
+                                ? "Refeição gravada no seu diário com sucesso! Continue mantendo o foco!"
+                                : analysis.Feedback;
+
+                            responseMsg = $"🥘 *Refeição Registrada:*\n" +
+                                          $"🔥 Calorias: {analysis.Calories} kcal\n" +
+                                          $"🥩 Proteínas: {analysis.Proteins}g\n" +
+                                          $"🥖 Carboidratos: {analysis.Carbs}g\n" +
+                                          $"🥑 Gorduras: {analysis.Fats}g\n\n" +
+                                          $"💡 {displayFeedback}";
                         }
                         else
                         {
