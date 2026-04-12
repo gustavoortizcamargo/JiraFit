@@ -65,7 +65,7 @@ public class WebhookBackgroundService : BackgroundService
                                   "• *Crie Avisos*: _\"Me lembre de jantar sempre às 20h!\"_.\n" +
                                   "• *Atualize seu Perfil*: _\"Meu peso atual é 90kg e tenho 180cm\"_.\n\n" +
                                   "Dúvidas extras? Apenas converse com a IA! 💪🍎";
-                        await messagingService.SendMessageAsync(payload.UserPhoneNumber, msg, null, stoppingToken);
+                        await messagingService.SendMessageAsync(payload.UserPhoneNumber, msg, stoppingToken);
                         continue;
                     }
                     if (text == "grafico")
@@ -75,7 +75,7 @@ public class WebhookBackgroundService : BackgroundService
 
                         if (!meals.Any())
                         {
-                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, "Você ainda não registrou nenhuma refeição nos últimos dias para gerar um gráfico.", null, stoppingToken);
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, "Você ainda não registrou nenhuma refeição nos últimos dias para gerar um gráfico.", stoppingToken);
                             continue;
                         }
 
@@ -130,7 +130,7 @@ public class WebhookBackgroundService : BackgroundService
 
                         var chartUrl = $"https://quickchart.io/chart?w=600&h=400&c={Uri.EscapeDataString(quickChartJson)}";
 
-                        await messagingService.SendMessageAsync(payload.UserPhoneNumber, "📊 Seu levantamento calórico dos últimos 7 dias está no gráfico acima! Parabéns pelo foco!", chartUrl, stoppingToken);
+                        await messagingService.SendMessageWithMediaAsync(payload.UserPhoneNumber, "📊 Seu levantamento calórico dos últimos 7 dias está no gráfico acima! Parabéns pelo foco!", chartUrl, stoppingToken);
                         continue;
                     }
                     if (text == "alarmes")

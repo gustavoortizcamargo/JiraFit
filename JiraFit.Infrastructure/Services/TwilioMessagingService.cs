@@ -18,7 +18,17 @@ public class TwilioMessagingService : IMessagingService
         _logger = logger;
     }
 
-    public async Task SendMessageAsync(string toPhoneNumber, string message, string? mediaUrl = null, CancellationToken cancellationToken = default)
+    public Task SendMessageAsync(string toPhoneNumber, string message, CancellationToken cancellationToken = default)
+    {
+        return SendMessageInternalAsync(toPhoneNumber, message, null, cancellationToken);
+    }
+
+    public Task SendMessageWithMediaAsync(string toPhoneNumber, string message, string mediaUrl, CancellationToken cancellationToken = default)
+    {
+        return SendMessageInternalAsync(toPhoneNumber, message, mediaUrl, cancellationToken);
+    }
+
+    private async Task SendMessageInternalAsync(string toPhoneNumber, string message, string? mediaUrl, CancellationToken cancellationToken)
     {
         try
         {

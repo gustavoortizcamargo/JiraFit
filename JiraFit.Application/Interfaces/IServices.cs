@@ -10,7 +10,8 @@ public interface IAIService
 
 public interface IMessagingService
 {
-    Task SendMessageAsync(string toPhoneNumber, string message, string? mediaUrl = null, CancellationToken cancellationToken = default);
+    Task SendMessageAsync(string toPhoneNumber, string message, CancellationToken cancellationToken = default);
+    Task SendMessageWithMediaAsync(string toPhoneNumber, string message, string mediaUrl, CancellationToken cancellationToken = default);
 }
 
 public interface IWebhookProcessorService
