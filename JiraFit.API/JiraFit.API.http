@@ -1,0 +1,6 @@
+@JiraFit.API_HostAddress = http://localhost:5057
+
+GET {{JiraFit.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="JiraFit.API/JiraFit.API.csproj" />
+  <Project Path="JiraFit.Application/JiraFit.Application.csproj" />
+  <Project Path="JiraFit.Domain/JiraFit.Domain.csproj" />
+  <Project Path="JiraFit.Infrastructure/JiraFit.Infrastructure.csproj" />
+</Solution>
