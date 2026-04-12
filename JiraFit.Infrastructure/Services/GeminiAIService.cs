@@ -161,6 +161,15 @@ public class GeminiAIService : IAIService
             twilioClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authHeaderValue);
 
             var response = await twilioClient.GetAsync(mediaUrl, cancellationToken);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning($"Failed to download media from Twilio. Status: {response.StatusCode}, Details: {err}");
+                return null;
+            }
+
+            var mediaBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
             return Convert.ToBase64String(mediaBytes);
         }
         catch (Exception ex)
