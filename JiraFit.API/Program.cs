@@ -21,6 +21,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Infrastructure - EF Core
 var connectionUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -32,6 +33,8 @@ if (!string.IsNullOrEmpty(connectionUrl))
     
     connectionString = $"Host={databaseUri.Host};Port={databaseUri.Port};Database={databaseUri.LocalPath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};Ssl Mode=Disable;";
 }
+
+builder.Services.AddDbContext<AppDbContext>(options =>
 {
     if (string.IsNullOrEmpty(connectionString))
     {
