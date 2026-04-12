@@ -32,10 +32,15 @@ public class GeminiAIService : IAIService
 
             var parts = new List<object>();
 
-            // 1. Text Content
+            // 1. Text Parsing
             if (!string.IsNullOrEmpty(input.TextContent))
             {
                 parts.Add(new { text = input.TextContent });
+            }
+            else if (!string.IsNullOrEmpty(input.MediaUrl))
+            {
+                // Fallback prompt para garantir que a IA tenha um contexto textual quando recebe apenas Mídia (Imagem sem legenda)
+                parts.Add(new { text = "Analise o alimento apresentado nesta mídia." });
             }
 
             // 2. Media Fetching from Twilio (Image or Audio)
@@ -53,10 +58,17 @@ public class GeminiAIService : IAIService
                         }
                     });
                 }
+                else
+                {
+                    _logger.LogWarning("Failed to fetch media from Twilio. Uploading without it.");
+                }
             }
 
             if (parts.Count == 0)
+            {
+                _logger.LogWarning("No text or media Parts constructed. Bailing out.");
                 return Result.Failure<NutritionalAnalysisDto>("Provide text or an image.");
+            }
 
             var userContext = $"[Contexto do Usuário atual] Nome salvo: {(string.IsNullOrEmpty(currentUser.Name) ? "Desconhecido" : currentUser.Name)}. Peso: {(currentUser.Weight > 0 ? currentUser.Weight + "kg" : "Desconhecido")}. Altura: {(currentUser.Height > 0 ? currentUser.Height + "cm" : "Desconhecido")}. ";
 
@@ -98,33 +110,40 @@ public class GeminiAIService : IAIService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Gemini API Error: {Response}", responseJson);
-                return Result.Failure<NutritionalAnalysisDto>("Failed to analyze meal with AI.");
+                _logger.LogError($"Gemini API Error: {responseJson}");
+                return Result.Failure<NutritionalAnalysisDto>("Failed to analyze meal from AI.");
             }
 
-            var geminiResponse = JsonSerializer.Deserialize<JsonElement>(responseJson);
-            var textResult = geminiResponse
+            var jsonDoc = JsonDocument.Parse(responseJson);
+            var textResult = jsonDoc.RootElement
                 .GetProperty("candidates")[0]
                 .GetProperty("content")
                 .GetProperty("parts")[0]
-                .GetProperty("text").GetString();
+                .GetProperty("text")
+                .GetString();
 
-            if (string.IsNullOrEmpty(textResult))
-                return Result.Failure<NutritionalAnalysisDto>("Empty response from AI.");
+            if (textResult == null)
+            {
+                _logger.LogError("Gemini returned a null text content for the JSON response.");
+                return Result.Failure<NutritionalAnalysisDto>("Failed to parse response format.");
+            }
 
-            var analysis = JsonSerializer.Deserialize<NutritionalAnalysisDto>(textResult, new JsonSerializerOptions
+            var dto = JsonSerializer.Deserialize<NutritionalAnalysisDto>(textResult, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
 
-            if (analysis == null)
-                return Result.Failure<NutritionalAnalysisDto>("Failed to deserialize AI JSON.");
+            if (dto == null) 
+            {
+                _logger.LogError($"Failed to deserialize string to DTO: {textResult}");
+                return Result.Failure<NutritionalAnalysisDto>("Failed to map AI response to DTO.");
+            }
 
-            return Result.Success(analysis);
+            return Result.Success(dto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error executing Gemini AI Service");
+            _logger.LogError(ex, "Unexpected error in AnalyzeMealAsync.");
             return Result.Failure<NutritionalAnalysisDto>(ex.Message);
         }
     }
@@ -133,27 +152,15 @@ public class GeminiAIService : IAIService
     {
         try
         {
+            var twilioClient = _httpClientFactory.CreateClient("Twilio");
+            
             var accountSid = _configuration["Twilio:AccountSid"];
             var authToken = _configuration["Twilio:AuthToken"];
-
-            if (string.IsNullOrEmpty(accountSid) || string.IsNullOrEmpty(authToken))
-            {
-                _logger.LogWarning("Twilio credentials not found. Cannot download secure media from {Url}", mediaUrl);
-                return null;
-            }
-
-            var twilioClient = _httpClientFactory.CreateClient("Twilio");
             var authHeaderValue = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{accountSid}:{authToken}"));
+            
             twilioClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authHeaderValue);
 
             var response = await twilioClient.GetAsync(mediaUrl, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Failed to download media from Twilio. Status: {Status}", response.StatusCode);
-                return null;
-            }
-
-            var mediaBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
             return Convert.ToBase64String(mediaBytes);
         }
         catch (Exception ex)
