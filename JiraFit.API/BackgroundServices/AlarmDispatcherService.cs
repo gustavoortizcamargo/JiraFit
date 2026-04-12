@@ -46,12 +46,9 @@ public class AlarmDispatcherService : BackgroundService
 
                     if (alarm.User != null && !string.IsNullOrEmpty(alarm.User.PhoneNumber))
                     {
-                        var result = await messagingService.SendMessageAsync(alarm.User.PhoneNumber, msg, stoppingToken);
-                        if (result)
-                        {
-                            // Marca como disparado hoje
-                            alarm.MarkAsTriggered(DateTime.UtcNow);
-                        }
+                        await messagingService.SendMessageAsync(alarm.User.PhoneNumber, msg, stoppingToken);
+                        // Marca como disparado hoje
+                        alarm.MarkAsTriggered(DateTime.UtcNow);
                     }
                 }
 
