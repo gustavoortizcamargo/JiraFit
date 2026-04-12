@@ -52,12 +52,18 @@ public class WebhookBackgroundService : BackgroundService
                     
                     if (text == "ajuda")
                     {
-                        var msg = "🤖 *Comandos do JiraFit*:\n\n" +
-                                  "• `resumo` ➜ Veja calorias e refeições consumidas hoje.\n" +
-                                  "• `alarmes` ➜ Liste seus avisos e lembretes.\n" +
-                                  "• `apagar` ➜ Remove a última refeição que você gravou.\n" +
-                                  "• `ajuda` ➜ Mostra esta mensagem novamente.\n\n" +
-                                  "📸 *Dica*: Envie uma foto do prato, audios ou peça um alarme (Ex: 'Me lembre de jantar as 20h'!).";
+                        var msg = "🤖 *Guia Rápido do JiraFit*\n" +
+                                  "Seu Personal Nutricional no WhatsApp! Veja como extrair o máximo:\n\n" +
+                                  "📋 *Comandos Específicos:*\n" +
+                                  "• `resumo` ➜ Traz a lista e somatória calórica do seu dia (Ideal para ler no fim da noite).\n" +
+                                  "• `alarmes` ➜ Lista todos os alarmes ativos.\n" +
+                                  "• `apagar` ➜ Remove a última refeição gravada por engano hoje.\n\n" +
+                                  "🎙️ *Mágica da Inteligência Artificial (Ações Livres):*\n" +
+                                  "• *Escreva ou grave Áudio*: _\"Comi 200g de frango com batata doce\"_ (O bot deduzirá os macros para você!).\n" +
+                                  "• *Mande uma Foto*: O JiraFit analisará a imagem do prato cru para encontrar as calorias.\n" +
+                                  "• *Crie Avisos*: _\"Me lembre de jantar sempre às 20h!\"_ (O JiraFit chamará você lá!).\n" +
+                                  "• *Atualize seu Perfil*: _\"Meu peso atual é 90kg e tenho 180cm\"_.\n\n" +
+                                  "Dúvidas extras? Apenas converse com a IA! 💪🍎";
                         await messagingService.SendMessageAsync(payload.UserPhoneNumber, msg, stoppingToken);
                         continue;
                     }
