@@ -71,6 +71,7 @@ builder.Services.AddHttpClient("Twilio");
 // Dependency Injection
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMealRepository, MealRepository>();
+builder.Services.AddScoped<IAlarmRepository, AlarmRepository>();
 builder.Services.AddScoped<IAIService, GeminiAIService>();
 builder.Services.AddScoped<IMessagingService, TwilioMessagingService>();
 
@@ -84,6 +85,7 @@ builder.Services.AddSingleton<IWebhookProcessorService>(channel);
 builder.Services.AddSingleton(channel); // Also expose concrete for HostedService
 
 builder.Services.AddHostedService<WebhookBackgroundService>();
+builder.Services.AddHostedService<AlarmDispatcherService>();
 
 var app = builder.Build();
 

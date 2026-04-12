@@ -17,3 +17,12 @@ public interface IMealRepository
     Task<bool> DeleteLatestMealAsync(Guid userId, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }
+
+public interface IAlarmRepository
+{
+    Task AddAsync(MealAlarm alarm, CancellationToken cancellationToken = default);
+    Task<List<MealAlarm>> GetActiveAlarmsByUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<List<MealAlarm>> GetAlarmsToTriggerAsync(int currentHour, int currentMinute, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Guid alarmId, CancellationToken cancellationToken = default);
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
+}

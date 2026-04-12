@@ -20,6 +20,11 @@ public class NutritionalAnalysisDto
     public string? ExtractedName { get; set; }
     public double? ExtractedWeight { get; set; }
     public double? ExtractedHeight { get; set; }
+
+    // Extracted context for Meal Alarms
+    public string? AlarmName { get; set; }
+    public int? AlarmHour { get; set; }
+    public int? AlarmMinute { get; set; }
 }
 
 public class UserRegistrationDto

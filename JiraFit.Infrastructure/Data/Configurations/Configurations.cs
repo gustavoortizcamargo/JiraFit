@@ -35,3 +35,18 @@ public class MealConfiguration : IEntityTypeConfiguration<Meal>
         builder.HasKey(m => m.Id);
     }
 }
+
+public class MealAlarmConfiguration : IEntityTypeConfiguration<MealAlarm>
+{
+    public void Configure(EntityTypeBuilder<MealAlarm> builder)
+    {
+        builder.HasKey(a => a.Id);
+        
+        builder.Property(a => a.Name).IsRequired().HasMaxLength(150);
+        
+        builder.HasOne(a => a.User)
+            .WithMany(u => u.Alarms)
+            .HasForeignKey(a => a.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}

@@ -53,11 +53,51 @@ public class WebhookBackgroundService : BackgroundService
                     if (text == "ajuda")
                     {
                         var msg = "🤖 *Comandos do JiraFit*:\n\n" +
-                                  "• `resumo` ➜ Veja todas as calorias e refeições consumidas hoje.\n" +
+                                  "• `resumo` ➜ Veja calorias e refeições consumidas hoje.\n" +
+                                  "• `alarmes` ➜ Liste seus avisos e lembretes.\n" +
                                   "• `apagar` ➜ Remove a última refeição que você gravou.\n" +
                                   "• `ajuda` ➜ Mostra esta mensagem novamente.\n\n" +
-                                  "📸 *Dica*: Envie uma foto do seu prato, ou um áudio/texto dizendo o que comeu!";
+                                  "📸 *Dica*: Envie uma foto do prato, audios ou peça um alarme (Ex: 'Me lembre de jantar as 20h'!).";
                         await messagingService.SendMessageAsync(payload.UserPhoneNumber, msg, stoppingToken);
+                        continue;
+                    }
+                    if (text == "alarmes")
+                    {
+                        var alarmRepo = scope.ServiceProvider.GetRequiredService<IAlarmRepository>();
+                        var activeAlarms = await alarmRepo.GetActiveAlarmsByUserAsync(currentUser.Id, stoppingToken);
+                        if (!activeAlarms.Any())
+                        {
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, "Você não tem nenhum alarme ativo no momento.", stoppingToken);
+                        }
+                        else
+                        {
+                            var msg = "⏰ *Seus Lembretes Ativos:*\n\n";
+                            foreach (var a in activeAlarms)
+                            {
+                                msg += $"• ID `{a.Id.ToString().Substring(0, 4)}` - {a.Name} às {a.Hour:D2}:{a.Minute:D2}\n";
+                            }
+                            msg += "\n*Dica*: Para apagar, envie: `apagar alarme [ID]` (Ex: apagar alarme a1b2)";
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, msg, stoppingToken);
+                        }
+                        continue;
+                    }
+                    if (text.StartsWith("apagar alarme "))
+                    {
+                        var alarmRepo = scope.ServiceProvider.GetRequiredService<IAlarmRepository>();
+                        var idPattern = text.Replace("apagar alarme ", "").Trim();
+                        var activeAlarms = await alarmRepo.GetActiveAlarmsByUserAsync(currentUser.Id, stoppingToken);
+                        
+                        var toDelete = activeAlarms.FirstOrDefault(a => a.Id.ToString().StartsWith(idPattern));
+                        if (toDelete != null)
+                        {
+                            await alarmRepo.DeleteAsync(toDelete.Id, stoppingToken);
+                            await alarmRepo.SaveChangesAsync(stoppingToken);
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, $"✅ Alarme '{toDelete.Name}' deletado com sucesso!", stoppingToken);
+                        }
+                        else
+                        {
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, "Alarme não encontrado. Verifique o ID digitando `alarmes`.", stoppingToken);
+                        }
                         continue;
                     }
                     if (text == "apagar")
@@ -122,8 +162,20 @@ public class WebhookBackgroundService : BackgroundService
 
                         string responseMsg;
 
+                        // Alarme Rastreamento
+                        if (!string.IsNullOrEmpty(analysis.AlarmName) && analysis.AlarmHour.HasValue && analysis.AlarmMinute.HasValue)
+                        {
+                            var alarmRepo = scope.ServiceProvider.GetRequiredService<IAlarmRepository>();
+                            var alarm = new MealAlarm(currentUser.Id, analysis.AlarmName, analysis.AlarmHour.Value, analysis.AlarmMinute.Value);
+                            await alarmRepo.AddAsync(alarm, stoppingToken);
+                            await alarmRepo.SaveChangesAsync(stoppingToken);
+                            
+                            responseMsg = string.IsNullOrWhiteSpace(analysis.Feedback) 
+                                ? $"✅ Lembrete de '{analysis.AlarmName}' criado para as {analysis.AlarmHour:D2}:{analysis.AlarmMinute:D2}h!" 
+                                : analysis.Feedback;
+                        }
                         // Refeição rastreada
-                        if (analysis.Calories > 0)
+                        else if (analysis.Calories > 0)
                         {
                             var meal = new Meal(currentUser.Id, payload.MediaUrl, payload.TextContent, analysis.Calories, analysis.Proteins, analysis.Carbs, analysis.Fats, analysis.Feedback);
                             await mealRepository.AddAsync(meal, stoppingToken);
@@ -133,7 +185,7 @@ public class WebhookBackgroundService : BackgroundService
                                 ? "Refeição gravada no seu diário com sucesso! Continue mantendo o foco!"
                                 : analysis.Feedback;
 
-                            responseMsg = $"🥘 *Refeição Registrada:*\n" +
+                            responseMsg = $"🥘 *Refeição Registrada:*\n\n" +
                                           $"🔥 Calorias: {analysis.Calories} kcal\n" +
                                           $"🥩 Proteínas: {analysis.Proteins}g\n" +
                                           $"🥖 Carboidratos: {analysis.Carbs}g\n" +

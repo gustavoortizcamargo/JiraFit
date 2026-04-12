@@ -22,6 +22,9 @@ public class User
     // Navigation
     private readonly List<Meal> _meals = new();
     public IReadOnlyCollection<Meal> Meals => _meals.AsReadOnly();
+    
+    private readonly List<MealAlarm> _alarms = new();
+    public IReadOnlyCollection<MealAlarm> Alarms => _alarms.AsReadOnly();
 
     protected User() { } // For EF Core
 

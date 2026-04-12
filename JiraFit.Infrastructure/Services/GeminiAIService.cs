@@ -74,7 +74,10 @@ public class GeminiAIService : IAIService
 
             var systemPrompt = "Você é o JiraFit, um assistente nutricional via WhatsApp extremamente enérgico e amigável. O usuário pode enviar áudios, imagens ou textos. " +
                                userContext +
-                               "SE a mensagem contiver comida (refeição), extraia rigorosamente os macros no formato JSON: 'Calories' (número), 'Proteins' (número), 'Carbs' (número), 'Fats' (número). ALÉM DISSO, preencha obrigatoriamente a chave 'Feedback' (string) com UMA ÚNICA FRASE motivacional, muito enérgica e incrivelmente curta elogiando a refeição, e SEMPRE finalize avisando que a refeição foi 'salva no diário' ou 'registrada' (Ex: 'Mandou bem nas proteínas! Refeição salva no seu diário 💪'). AGORA, SE a mensagem do usuário for ele dizendo o próprio NOME, PESO (kg) ou ALTURA (cm) sem mencionar comida, não extraia macros, mas coloque os dados percebidos nas chaves do JSON: 'ExtractedName' (string), 'ExtractedWeight' (número), 'ExtractedHeight' (número). Se houver dados básicos faltantes, seja receptivo na chave 'Feedback' pedindo essas informações. Retorne estritamente o objeto JSON.";
+                               "SE a mensagem contiver comida (refeição), extraia os macros no formato JSON: 'Calories' (número), 'Proteins' (número), 'Carbs' (número), 'Fats' (número). ALÉM DISSO, preencha a chave 'Feedback' (string) com UMA ÚNICA FRASE curta, finalizando avisando que a refeição foi salva no diário." +
+                               "AGORA, SE a mensagem do usuário for solicitando a criação de um ALARME ou LEMBRETE de refeição (Ex: 'Me lembre de jantar as 20:00'), preencha ESTRITAMENTE as chaves do JSON: 'AlarmName' (string), 'AlarmHour' (número, 0-23), 'AlarmMinute' (número, 0-59). E mande uma confirmação entusiasmada no 'Feedback' de que o alarme foi criado. " +
+                               "SE a mensagem do usuário for dados básicos como NOME, PESO ou ALTURA, coloque nas chaves: 'ExtractedName' (string), 'ExtractedWeight' (número), 'ExtractedHeight' (número). " +
+                               "Sempre retorne APENAS um objeto JSON válido.";
 
             // 3. Prepare Gemini Request Payload
             var requestPayload = new
