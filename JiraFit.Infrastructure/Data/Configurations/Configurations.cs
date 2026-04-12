@@ -12,11 +12,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         
         builder.Property(u => u.PhoneNumber)
             .IsRequired()
-            .HasMaxLength(20);
+            .HasMaxLength(50);
             
         builder.HasIndex(u => u.PhoneNumber).IsUnique();
 
-        builder.Property(u => u.Name).IsRequired().HasMaxLength(150);
+        builder.Property(u => u.Name).IsRequired(false).HasMaxLength(150);
         
         builder.Property(u => u.Gender).HasConversion<string>();
         builder.Property(u => u.Objective).HasConversion<string>();
