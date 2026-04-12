@@ -66,13 +66,27 @@ builder.Services.AddHttpClient("Gemini", client =>
 {
     client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/");
 });
+builder.Services.AddHttpClient("OpenAI", client =>
+{
+    client.BaseAddress = new Uri("https://api.openai.com/v1/");
+});
 builder.Services.AddHttpClient("Twilio");
 
 // Dependency Injection
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMealRepository, MealRepository>();
 builder.Services.AddScoped<IAlarmRepository, AlarmRepository>();
-builder.Services.AddScoped<IAIService, GeminiAIService>();
+
+var aiProvider = builder.Configuration["AI_PROVIDER"] ?? "Gemini";
+if (aiProvider.Equals("OpenAI", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddScoped<IAIService, OpenAIService>();
+}
+else
+{
+    builder.Services.AddScoped<IAIService, GeminiAIService>();
+}
+
 builder.Services.AddScoped<IMessagingService, TwilioMessagingService>();
 
 // Validators
