@@ -19,6 +19,36 @@ public class User
     
     public bool IsChildishPalate { get; private set; }
 
+    // Gamification
+    public int CurrentStreak { get; private set; }
+    public DateTime? LastActivityDate { get; private set; }
+
+    public void RegisterActivity(DateTime currentLocalDate)
+    {
+        var targetDate = currentLocalDate.Date;
+
+        if (LastActivityDate == null)
+        {
+            CurrentStreak = 1;
+        }
+        else
+        {
+            var diff = (targetDate - LastActivityDate.Value.Date).TotalDays;
+
+            if (diff == 1) // Consecutive Day
+            {
+                CurrentStreak++;
+            }
+            else if (diff > 1) // Gap > 1 day, Streak broken
+            {
+                CurrentStreak = 1;
+            }
+            // diff == 0 means another meal today, ignore
+        }
+
+        LastActivityDate = targetDate;
+    }
+
     // Navigation
     private readonly List<Meal> _meals = new();
     public IReadOnlyCollection<Meal> Meals => _meals.AsReadOnly();

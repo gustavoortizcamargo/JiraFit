@@ -253,16 +253,26 @@ public class WebhookBackgroundService : BackgroundService
                             await mealRepository.AddAsync(meal, stoppingToken);
                             await mealRepository.SaveChangesAsync(stoppingToken);
 
+                            // Streak logic (Brasília timezone constraint)
+                            var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+                            currentUser.RegisterActivity(DateTime.UtcNow.AddHours(-3));
+                            await userRepository.SaveChangesAsync(stoppingToken);
+
                             var displayFeedback = string.IsNullOrWhiteSpace(analysis.Feedback)
                                 ? "Refeição gravada no seu diário com sucesso! Continue mantendo o foco!"
                                 : analysis.Feedback;
+
+                            var streakMsg = currentUser.CurrentStreak > 1 
+                                ? $"🔥 *Ofensiva Diária*: {currentUser.CurrentStreak} dias sem errar o foco!" 
+                                : $"🔥 *Ofensiva Iniciada*: 1° dia gravado com sucesso!";
 
                             responseMsg = $"🥘 *Refeição Registrada:*\n\n" +
                                           $"🔥 Calorias: {analysis.Calories} kcal\n" +
                                           $"🥩 Proteínas: {analysis.Proteins}g\n" +
                                           $"🥖 Carboidratos: {analysis.Carbs}g\n" +
                                           $"🥑 Gorduras: {analysis.Fats}g\n\n" +
-                                          $"💡 {displayFeedback}";
+                                          $"💡 {displayFeedback}\n\n" +
+                                          streakMsg;
                         }
                         else
                         {
