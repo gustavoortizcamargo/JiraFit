@@ -231,6 +231,7 @@ public class WebhookBackgroundService : BackgroundService
                         }
                         payload.TextContent = $"Por favor, me sugira MÁGICAMENTE uma receita deliciosa que preencha ESTRITAMENTE as calorias que ainda me faltam hoje. Liste-a.";
                         isSuggestionMode = true;
+                        payload.IsSuggestionRequest = true;
                     }
 
                     // 4. Injeção de Contexto Oculto Diário

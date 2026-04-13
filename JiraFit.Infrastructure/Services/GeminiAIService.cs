@@ -74,11 +74,13 @@ public class GeminiAIService : IAIService
             var contextMetadataStr = string.IsNullOrEmpty(input.ContextMetadata) ? "" : $" [Resumo Do Dia Atual]: {input.ContextMetadata}";
             var userContext = $"[Contexto do Usuário] Nome: {(string.IsNullOrEmpty(currentUser.Name) ? "Desconhecido" : currentUser.Name)}. Peso: {(currentUser.Weight > 0 ? currentUser.Weight + "kg" : "Desconhecido")}. Altura: {(currentUser.Height > 0 ? currentUser.Height + "cm" : "Desconhecido")}.{contextMetadataStr} ";
 
+            var behaviorLogic = input.IsSuggestionRequest 
+                ? "IMPORTANTE: O usuário está pedindo uma SUGESTÃO de jantar/refeição. Como nutricionista gatinho, elabore uma receita (ingredientes e preparo) que cumpra EXATAMENTE o resto das calorias necessárias do dia e escreva essa resposta inteira DENTRO da chave 'Feedback' (string) do JSON. Deixe os outros macros (Calories/Proteins...) como 0." 
+                : "SE a mensagem contiver comida (refeição), extraia os macros no formato JSON: 'Calories' (número), 'Proteins' (número), 'Carbs' (número), 'Fats' (número). ALÉM DISSO, preencha a chave 'Feedback' (string) com UMA ÚNICA FRASE curta, finalizando avisando que a refeição foi salva no diário. AGORA, SE a mensagem do usuário for solicitando a criação de um ALARME ou LEMBRETE (Ex: 'Me lembre de jantar as 20:00'), preencha ESTRITAMENTE as chaves do JSON: 'AlarmName' (string), 'AlarmHour' (número, 0-23), 'AlarmMinute' (número, 0-59). E mande uma confirmação entusiasmada no 'Feedback'.";
+
             var systemPrompt = "Você é o JiraFit, um assistente nutricional via WhatsApp extremamente enérgico e amigável. A sua persona é um gatinho! Use linguagem carinhosa e abuse de emojis de gato (😸, 🐾, 😹, 🐱, 😻) para dar vida a você. O usuário pode enviar áudios, imagens ou textos. " +
-                               userContext +
-                               "SE a mensagem contiver comida (refeição), extraia os macros no formato JSON: 'Calories' (número), 'Proteins' (número), 'Carbs' (número), 'Fats' (número). ALÉM DISSO, preencha a chave 'Feedback' (string) com UMA ÚNICA FRASE curta, finalizando avisando que a refeição foi salva no diário." +
-                               "AGORA, SE a mensagem do usuário for solicitando a criação de um ALARME ou LEMBRETE de refeição (Ex: 'Me lembre de jantar as 20:00'), preencha ESTRITAMENTE as chaves do JSON: 'AlarmName' (string), 'AlarmHour' (número, 0-23), 'AlarmMinute' (número, 0-59). E mande uma confirmação entusiasmada no 'Feedback' de que o alarme foi criado. " +
-                               "SE a mensagem do usuário for dados básicos como NOME, PESO ou ALTURA, coloque nas chaves: 'ExtractedName' (string), 'ExtractedWeight' (número), 'ExtractedHeight' (número). " +
+                               userContext + behaviorLogic +
+                               " Sua resposta deve ser ESTRITAMENTE um JSON válido, sem utilizar blocos de código extra nem marcação markdown ```. Retorne aspas duplas, formato puro. SE a mensagem do usuário for dados básicos como NOME, PESO ou ALTURA, coloque nas chaves: 'ExtractedName' (string), 'ExtractedWeight' (número), 'ExtractedHeight' (número). " +
                                "Sempre retorne APENAS um objeto JSON válido.";
 
             // 3. Prepare Gemini Request Payload

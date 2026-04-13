@@ -7,6 +7,7 @@ public class MealInputDto
     public string? MediaType { get; set; } // e.g. "image/jpeg" or "audio/ogg"
     public string? TextContent { get; set; }
     public string? ContextMetadata { get; set; }
+    public bool IsSuggestionRequest { get; set; }
 }
 
 public class NutritionalAnalysisDto

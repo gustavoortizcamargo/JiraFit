@@ -41,12 +41,13 @@ public class OpenAIService : IAIService
             var contextMetadataStr = string.IsNullOrEmpty(input.ContextMetadata) ? "" : $" [Resumo Do Dia Atual]: {input.ContextMetadata}";
             var userContext = $"[Contexto do Usuário] Nome: {(string.IsNullOrEmpty(currentUser.Name) ? "Desconhecido" : currentUser.Name)}. Peso: {(currentUser.Weight > 0 ? currentUser.Weight + "kg" : "Desconhecido")}. Altura: {(currentUser.Height > 0 ? currentUser.Height + "cm" : "Desconhecido")}.{contextMetadataStr} ";
 
+            var behaviorLogic = input.IsSuggestionRequest 
+                ? "IMPORTANTE: O usuário está pedindo uma SUGESTÃO de jantar/refeição. Como nutricionista gatinho, elabore uma lista de ingredientes e preparo que se encaixe magicamente nas calorias diárias RESTANTES dele e envie toda essa receita detalhada dentro do campo 'Feedback' (string). Preencha Calories/Proteins/Carbs/Fats como 0." 
+                : "SE a mensagem contiver comida, extraia rigorosamente: 'Calories' (número), 'Proteins' (número), 'Carbs' (número), 'Fats' (número). ALÉM DISSO, adicione na chave 'Feedback' (string) UMA ÚNICA FRASE motivacional, confirmando sempre que a refeição foi salva no diário. SE a mensagem do usuário for solicitando a criação de um ALARME (ex: 'me lembre as 20h'), preencha: 'AlarmName', 'AlarmHour' e 'AlarmMinute'. Confirme no 'Feedback' também. SE for apenas dados cadastrais (peso, altura, nome), preencha: 'ExtractedName' (string), 'ExtractedWeight' (número), 'ExtractedHeight' (número).";
+
             var systemPrompt = "Você é o JiraFit, um assistente nutricional caloroso via WhatsApp. Você é representado pela persona de um gatinho! Tente usar emojis de gato (🐱, 😸, 🐾, 😹) sempre que possível para manter sua essência fofa e carinhosa. " +
-                               userContext +
-                               "SE a mensagem contiver comida, extraia rigorosamente: 'Calories' (número), 'Proteins' (número), 'Carbs' (número), 'Fats' (número). ALÉM DISSO, adicione na chave 'Feedback' (string) UMA ÚNICA FRASE motivacional, confirmando sempre que a refeição foi salva no diário. " +
-                               "SE a mensagem do usuário for solicitando a criação de um ALARME ou LEMBRETE (ex: 'me lembre de jantar as 20h'), preencha ESTRITAMENTE as chaves: 'AlarmName' (string), 'AlarmHour' (int, 0-23), 'AlarmMinute' (int, 0-59). Confirme no 'Feedback' também. " +
-                               "SE for apenas dados cadastrais (peso, altura, nome), preencha: 'ExtractedName' (string), 'ExtractedWeight' (número), 'ExtractedHeight' (número). " +
-                               "Seja inteligente. Retorne ESTRITAMENTE um objeto JSON com as propriedades validadas mapeadas de volta. Não escreva textos fora do JSON.";
+                               userContext + behaviorLogic + 
+                               " Retorne APENAS um JSON válido de acordo com os campos citados, SEM usar blocos textuais fora do JSON, SEM markdown (como ```json).";
             
             // Tratamento especial se o conteúdo for Áudio
             var finalInputText = input.TextContent;
