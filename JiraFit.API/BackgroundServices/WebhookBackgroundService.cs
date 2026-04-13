@@ -133,6 +133,13 @@ public class WebhookBackgroundService : BackgroundService
                         await messagingService.SendMessageWithMediaAsync(payload.UserPhoneNumber, "📊 Seu levantamento calórico dos últimos 7 dias está no gráfico acima! Parabéns pelo foco!", chartUrl, stoppingToken);
                         continue;
                     }
+                    if (text == "alarmes")
+                    {
+                        var alarmRepo = scope.ServiceProvider.GetRequiredService<IAlarmRepository>();
+                        var activeAlarms = await alarmRepo.GetActiveAlarmsByUserAsync(currentUser.Id, stoppingToken);
+                        if (!activeAlarms.Any())
+                        {
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, "Você não tem nenhum alarme ativo no momento.", stoppingToken);
                         }
                         else
                         {
@@ -211,7 +218,31 @@ public class WebhookBackgroundService : BackgroundService
                         continue;
                     }
 
-                    // 3. Multimodal AI Processing
+                    // 3. Modo Sugestão Tática
+                    bool isSuggestionMode = false;
+                    if (text == "sugestao" || text == "sugestão")
+                    {
+                        if (currentUser.Tdee <= 0)
+                        {
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, "⚠️ Para que eu não prejudique sua saúde, me fale seu *Peso atual* e *Altura* em uma mensagem para eu calcular a sua Meta Diária primeiro!", stoppingToken);
+                            continue;
+                        }
+                        payload.TextContent = $"Por favor, me sugira MÁGICAMENTE uma receita deliciosa que preencha ESTRITAMENTE as calorias que ainda me faltam hoje. Liste-a.";
+                        isSuggestionMode = true;
+                    }
+
+                    // 4. Injeção de Contexto Oculto Diário
+                    var todayMeals = await mealRepository.GetDailyMealsAsync(currentUser.Id, DateTime.UtcNow.AddHours(-3), stoppingToken);
+                    if (currentUser.Tdee > 0)
+                    {
+                        var calsToday = todayMeals.Sum(m => m.Calories);
+                        var remaining = currentUser.Tdee - calsToday;
+                        
+                        var suggestionBoost = isSuggestionMode ? " CRIE A RECEITA PENSADA EXATAMENTE PARA PREENCHER ESTE ESPAÇO DE CALORIAS!" : " O feedback deve levar isso em consideração na sua empolgação conversacional.";
+                        payload.ContextMetadata = $"O usuário já ingeriu {calsToday:F0} Kcal hoje. Restam apenas {remaining:F0} Kcal para atingir a meta de {currentUser.Tdee:F0}.{suggestionBoost}";
+                    }
+
+                    // 5. Multimodal AI Processing
                     var result = await aiService.AnalyzeMealAsync(payload, currentUser, stoppingToken);
 
                     if (result.IsSuccess)
