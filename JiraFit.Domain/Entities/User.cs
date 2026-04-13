@@ -23,6 +23,33 @@ public class User
     public int CurrentStreak { get; private set; }
     public DateTime? LastActivityDate { get; private set; }
 
+    // Subscription & Paywall
+    public DateTime CreatedAt { get; private set; }
+    public bool IsPro { get; private set; }
+    public int MessagesSentToday { get; private set; }
+    public DateTime? LastMessageTrackedDate { get; private set; }
+
+    public void TrackMessageUsage(DateTime currentLocalDate)
+    {
+        var targetDate = currentLocalDate.Date;
+
+        if (LastMessageTrackedDate == null || LastMessageTrackedDate.Value.Date != targetDate)
+        {
+            MessagesSentToday = 1; // First message of the day
+        }
+        else
+        {
+            MessagesSentToday++;
+        }
+
+        LastMessageTrackedDate = targetDate;
+    }
+
+    public void UpgradeToPro()
+    {
+        IsPro = true;
+    }
+
     public void RegisterActivity(DateTime currentLocalDate)
     {
         var targetDate = currentLocalDate.Date;
@@ -64,6 +91,8 @@ public class User
         Id = Guid.NewGuid();
         PhoneNumber = phoneNumber;
         Objective = Objective.Maintenance; // Default logic
+        CreatedAt = DateTime.UtcNow; // UTC for global control
+        IsPro = false; // Start on Free Tier
     }
 
     public void UpdateProfile(string? name, double? weight, double? height)

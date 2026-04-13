@@ -45,7 +45,39 @@ public class WebhookBackgroundService : BackgroundService
                         currentUser = new User(payload.UserPhoneNumber);
                         await userRepository.AddAsync(currentUser, stoppingToken);
                         await userRepository.SaveChangesAsync(stoppingToken); // Commit to get an ID
+                        
+                        // 1.1 First-Time Onboarding Experience
+                        var welcomeMsg = "😽 *Miau! Que bom ter você aqui!*\nSou o JiraFit, seu super nutricionista de bolso no WhatsApp.\n\n" +
+                                         "Eu consigo detectar os nutrientes de *fotos* dos seus pratos, criar *alarmes* da água, e ajudar muito com dicas de dieta! Você tem **7 dias inteiros** com **10 mensagens/dia** pra usar meu sistema Mágicamente de graça!\n\n" +
+                                         "🔒 *Privacidade*: Suas fotos e medidas de peso são blindadas, seguras e privadas apenas pro MEU cérebro.\n\nE agora, conta pra mim:";
+                        await messagingService.SendMessageAsync(payload.UserPhoneNumber, welcomeMsg, stoppingToken);
                     }
+
+                    // 1.2 Subscription Throttle Wall (Free vs Pro)
+                    if (!currentUser.IsPro)
+                    {
+                        var daysActive = (DateTime.UtcNow - currentUser.CreatedAt).TotalDays;
+                        if (daysActive > 7)
+                        {
+                            var paywallMsg = "😿 *Seu período de Avaliação de 7 dias acabou...*\n" +
+                                             "Para continuar contando calorias, extraindo imagens e batendo sua ofensiva 🔥, faça o upgrade pro *Plano Pro* por apenas *R$ 9,99/mês*!\n\n" +
+                                             "💳 Aperte para Assinar: https://pay.mercadopago.fake/jirafit-pro";
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, paywallMsg, stoppingToken);
+                            continue;
+                        }
+
+                        if (currentUser.MessagesSentToday >= 10 && currentUser.LastMessageTrackedDate?.Date == DateTime.UtcNow.AddHours(-3).Date)
+                        {
+                            var limitMsg = "🙀 Você atingiu o limite de *10 mensagens por dia* do Plano *Free*!\n\n" +
+                                           "Volte amanhã para continuar sua meta, ou libere mensagens *ilimitadas* assinando o *Plano Pro* por R$ 9,99/mês! 🐾\n💳 Assinar: https://pay.mercadopago.fake/jirafit-pro";
+                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, limitMsg, stoppingToken);
+                            continue;
+                        }
+                    }
+
+                    // Count the successful pass against quota
+                    currentUser.TrackMessageUsage(DateTime.UtcNow.AddHours(-3));
+                    await userRepository.SaveChangesAsync(stoppingToken);
 
                     // 2. Exact Command Interceptor
                     string text = payload.TextContent?.Trim().ToLowerInvariant() ?? "";
@@ -245,9 +277,14 @@ public class WebhookBackgroundService : BackgroundService
                     }
 
                     // 4. Injeção de Contexto Oculto Diário
-                    var todayMeals = await mealRepository.GetDailyMealsAsync(currentUser.Id, DateTime.UtcNow.AddHours(-3), stoppingToken);
-                    if (currentUser.Tdee > 0)
+                    // 4. Injeção de Contexto Oculto Diário e Onboarding
+                    if (currentUser.Tdee <= 0)
                     {
+                        payload.ContextMetadata = "MUITO IMPORTANTE: O usuário ainda NÃO cadastrou Nome, Peso ou Altura. Como um gatinho nutricionista caloroso, faça perguntas ou puxe assunto gentilmente para que ele forneça o Nome, Peso (kg) e Altura (cm). Jamais liste JSON genérico. Mostre empolgação por ele entrar no aplicativo!";
+                    }
+                    else
+                    {
+                        var todayMeals = await mealRepository.GetDailyMealsAsync(currentUser.Id, DateTime.UtcNow.AddHours(-3), stoppingToken);
                         var calsToday = todayMeals.Sum(m => m.Calories);
                         var remaining = currentUser.Tdee - calsToday;
                         
