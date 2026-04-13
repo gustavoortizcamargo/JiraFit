@@ -49,7 +49,7 @@ public class WebhookBackgroundService : BackgroundService
                         // 1.1 First-Time Onboarding Experience
                         var welcomeMsg = "😽 *Miau! Que bom ter você aqui!*\nSou o JiraFit, seu super nutricionista de bolso no WhatsApp.\n\n" +
                                          "Eu consigo detectar os nutrientes de *fotos* dos seus pratos, criar *alarmes* da água, e ajudar muito com dicas de dieta! Você tem **7 dias inteiros** com **10 mensagens/dia** pra usar meu sistema Mágicamente de graça!\n\n" +
-                                         "🔒 *Privacidade*: Suas fotos e medidas de peso são blindadas, seguras e privadas apenas pro MEU cérebro.\n\nE agora, conta pra mim:";
+                                         "🔒 *Privacidade*: Suas fotos e medidas de peso são blindadas, seguras e privadas apenas pro MEU cérebro.\n";
                         await messagingService.SendMessageAsync(payload.UserPhoneNumber, welcomeMsg, stoppingToken);
                     }
 
@@ -280,7 +280,7 @@ public class WebhookBackgroundService : BackgroundService
                     // 4. Injeção de Contexto Oculto Diário e Onboarding
                     if (currentUser.Tdee <= 0)
                     {
-                        payload.ContextMetadata = "MUITO IMPORTANTE: O usuário ainda NÃO cadastrou Nome, Peso ou Altura. Como um gatinho nutricionista caloroso, faça perguntas ou puxe assunto gentilmente para que ele forneça o Nome, Peso (kg) e Altura (cm). Jamais liste JSON genérico. Mostre empolgação por ele entrar no aplicativo!";
+                        payload.ContextMetadata = "MUITO IMPORTANTE: Faltam os dados vitais. Aja como um nutricionista felino e chame em UMA frase super direta e curta para que o usuário informe o Nome, Peso e Altura dele para bater a meta. Como o sistema já deu boas vindas, NÃO diga 'Bem-vindo!' nem nada longo. Apenas vá direto ao ponto.";
                     }
                     else
                     {
