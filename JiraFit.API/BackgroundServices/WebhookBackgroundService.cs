@@ -133,13 +133,6 @@ public class WebhookBackgroundService : BackgroundService
                         await messagingService.SendMessageWithMediaAsync(payload.UserPhoneNumber, "📊 Seu levantamento calórico dos últimos 7 dias está no gráfico acima! Parabéns pelo foco!", chartUrl, stoppingToken);
                         continue;
                     }
-                    if (text == "alarmes")
-                    {
-                        var alarmRepo = scope.ServiceProvider.GetRequiredService<IAlarmRepository>();
-                        var activeAlarms = await alarmRepo.GetActiveAlarmsByUserAsync(currentUser.Id, stoppingToken);
-                        if (!activeAlarms.Any())
-                        {
-                            await messagingService.SendMessageAsync(payload.UserPhoneNumber, "Você não tem nenhum alarme ativo no momento.", stoppingToken);
                         }
                         else
                         {
@@ -247,7 +240,7 @@ public class WebhookBackgroundService : BackgroundService
                                 : analysis.Feedback;
                         }
                         // Refeição rastreada
-                        else if (analysis.Calories > 0)
+                        else if (analysis.Calories > 0 && !isSuggestionMode)
                         {
                             var meal = new Meal(currentUser.Id, payload.MediaUrl, payload.TextContent, analysis.Calories, analysis.Proteins, analysis.Carbs, analysis.Fats, analysis.Feedback);
                             await mealRepository.AddAsync(meal, stoppingToken);

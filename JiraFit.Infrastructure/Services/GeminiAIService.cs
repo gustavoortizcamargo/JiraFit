@@ -70,7 +70,9 @@ public class GeminiAIService : IAIService
                 return Result.Failure<NutritionalAnalysisDto>("Provide text or an image.");
             }
 
-            var userContext = $"[Contexto do Usuário atual] Nome salvo: {(string.IsNullOrEmpty(currentUser.Name) ? "Desconhecido" : currentUser.Name)}. Peso: {(currentUser.Weight > 0 ? currentUser.Weight + "kg" : "Desconhecido")}. Altura: {(currentUser.Height > 0 ? currentUser.Height + "cm" : "Desconhecido")}. ";
+            // 2. Build Text Prompt Payload
+            var contextMetadataStr = string.IsNullOrEmpty(input.ContextMetadata) ? "" : $" [Resumo Do Dia Atual]: {input.ContextMetadata}";
+            var userContext = $"[Contexto do Usuário] Nome: {(string.IsNullOrEmpty(currentUser.Name) ? "Desconhecido" : currentUser.Name)}. Peso: {(currentUser.Weight > 0 ? currentUser.Weight + "kg" : "Desconhecido")}. Altura: {(currentUser.Height > 0 ? currentUser.Height + "cm" : "Desconhecido")}.{contextMetadataStr} ";
 
             var systemPrompt = "Você é o JiraFit, um assistente nutricional via WhatsApp extremamente enérgico e amigável. O usuário pode enviar áudios, imagens ou textos. " +
                                userContext +
