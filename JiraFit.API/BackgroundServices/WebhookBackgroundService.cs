@@ -55,16 +55,18 @@ public class WebhookBackgroundService : BackgroundService
                         var msg = "🤖 *Guia Rápido do JiraFit*\n" +
                                   "Seu Personal Nutricional no WhatsApp! Veja como extrair o máximo:\n\n" +
                                   "📋 *Comandos Específicos:*\n" +
+                                  "• `sugestao` ➜ A IA avalia exatamente as calorias/proteínas que faltam pro seu dia hoje e prescreve o que você deve comer de jantar!\n" +
                                   "• `resumo` ➜ Traz a lista e somatória calórica do seu dia.\n" +
                                   "• `grafico` ➜ Envia a imagem do seu gráfico calórico dos últimos 7 dias.\n" +
                                   "• `alarmes` ➜ Lista todos os alarmes ativos.\n" +
                                   "• `apagar` ➜ Remove a última refeição gravada por engano hoje.\n\n" +
-                                  "🎙️ *Mágica da IA (Ações Livres):*\n" +
+                                  "🎙️ *Mágica da IA (Ações Livres e Gamificação):*\n" +
                                   "• *Escreva ou grave Áudio*: _\"Comi 200g de frango com batata doce\"_.\n" +
                                   "• *Mande uma Foto*: O bot analisará imagem do prato para encontrar as calorias.\n" +
+                                  "• *Desafio de Ofensiva (Streak)*: Adicione pratos seguidamente dia-a-dia para fazer o número das Chamas 🔥 do seu foco crescerem. Se escorregar e ficar um dia sem postar sua dieta... Você zera!\n" +
                                   "• *Crie Avisos*: _\"Me lembre de jantar sempre às 20h!\"_.\n" +
                                   "• *Atualize seu Perfil*: _\"Meu peso atual é 90kg e tenho 180cm\"_.\n\n" +
-                                  "Dúvidas extras? Apenas converse com a IA! 💪🍎";
+                                  "Dúvidas extras? Apenas converse com a Inteligência Artificial! 💪🍎";
                         await messagingService.SendMessageAsync(payload.UserPhoneNumber, msg, stoppingToken);
                         continue;
                     }
