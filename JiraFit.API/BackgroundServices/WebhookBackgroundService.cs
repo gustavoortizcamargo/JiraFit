@@ -323,7 +323,14 @@ public class WebhookBackgroundService : BackgroundService
                         // Refeição rastreada
                         else if (analysis.Calories > 0 && !isSuggestionMode)
                         {
-                            var meal = new Meal(currentUser.Id, payload.MediaUrl, payload.TextContent, analysis.Calories, analysis.Proteins, analysis.Carbs, analysis.Fats, analysis.Feedback);
+                            DateTime? customMealTime = null;
+                            if (analysis.MealHour.HasValue && analysis.MealMinute.HasValue)
+                            {
+                                var bsbTime = DateTime.UtcNow.AddHours(-3);
+                                customMealTime = new DateTime(bsbTime.Year, bsbTime.Month, bsbTime.Day, analysis.MealHour.Value, analysis.MealMinute.Value, 0);
+                            }
+
+                            var meal = new Meal(currentUser.Id, payload.MediaUrl, payload.TextContent, analysis.Calories, analysis.Proteins, analysis.Carbs, analysis.Fats, analysis.Feedback, customMealTime);
                             await mealRepository.AddAsync(meal, stoppingToken);
                             await mealRepository.SaveChangesAsync(stoppingToken);
 
@@ -335,11 +342,13 @@ public class WebhookBackgroundService : BackgroundService
                                 ? "Refeição gravada no seu diário com sucesso! Continue mantendo o foco!"
                                 : analysis.Feedback;
 
+                            var temporalTag = customMealTime.HasValue ? $" às {customMealTime.Value:HH:mm}h" : "";
+
                             var streakMsg = currentUser.CurrentStreak > 1 
                                 ? $"🔥 *Ofensiva Diária*: {currentUser.CurrentStreak} dias sem arranhar o foco!" 
                                 : $"🔥 *Ofensiva Iniciada*: 1° dia gravado com sucesso! Miau!";
 
-                            responseMsg = $"😻 *Refeição Registrada:*\n\n" +
+                            responseMsg = $"😻 *Refeição Registrada{temporalTag}:*\n\n" +
                                           $"🔥 Calorias: {analysis.Calories} kcal\n" +
                                           $"🥩 Proteínas: {analysis.Proteins}g\n" +
                                           $"🥖 Carboidratos: {analysis.Carbs}g\n" +

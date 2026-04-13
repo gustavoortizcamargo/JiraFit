@@ -23,7 +23,7 @@ public class Meal
 
     protected Meal() { } // EF Core
 
-    public Meal(Guid userId, string? imageUrl, string? rawText, double calories, double proteins, double carbs, double fats, string? aiFeedback)
+    public Meal(Guid userId, string? imageUrl, string? rawText, double calories, double proteins, double carbs, double fats, string? aiFeedback, DateTime? customTimestamp = null)
     {
         Id = Guid.NewGuid();
         UserId = userId;
@@ -34,6 +34,6 @@ public class Meal
         Carbs = carbs;
         Fats = fats;
         AiFeedback = aiFeedback;
-        Timestamp = DateTime.UtcNow.AddHours(-3);
+        Timestamp = customTimestamp ?? DateTime.UtcNow.AddHours(-3);
     }
 }

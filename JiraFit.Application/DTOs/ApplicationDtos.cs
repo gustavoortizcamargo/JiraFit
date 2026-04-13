@@ -23,6 +23,10 @@ public class NutritionalAnalysisDto
     public double? ExtractedWeight { get; set; }
     public double? ExtractedHeight { get; set; }
 
+    // Extracted context for Manual Meal Hours
+    public int? MealHour { get; set; }
+    public int? MealMinute { get; set; }
+
     // Extracted context for Meal Alarms
     public string? AlarmName { get; set; }
     public int? AlarmHour { get; set; }
