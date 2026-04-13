@@ -19,6 +19,8 @@ public class AlarmRepository : IAlarmRepository
         await _context.MealAlarms.AddAsync(alarm, cancellationToken);
     }
 
+
+
     public async Task<List<MealAlarm>> GetActiveAlarmsByUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await _context.MealAlarms
@@ -30,7 +32,7 @@ public class AlarmRepository : IAlarmRepository
     public async Task<List<MealAlarm>> GetAlarmsToTriggerAsync(int currentHour, int currentMinute, CancellationToken cancellationToken = default)
     {
         // Must consider alarms that match the time AND weren't triggered today.
-        var today = DateTime.UtcNow.Date;
+        var today = DateTime.UtcNow.AddHours(-3).Date;
 
         return await _context.MealAlarms
             .Include(a => a.User) // We need the user to send the message

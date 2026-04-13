@@ -91,7 +91,7 @@ public class User
         Id = Guid.NewGuid();
         PhoneNumber = phoneNumber;
         Objective = Objective.Maintenance; // Default logic
-        CreatedAt = DateTime.UtcNow; // UTC for global control
+        CreatedAt = DateTime.UtcNow.AddHours(-3); // BRT for global control
         IsPro = false; // Start on Free Tier
     }
 

@@ -56,7 +56,7 @@ public class WebhookBackgroundService : BackgroundService
                     // 1.2 Subscription Throttle Wall (Free vs Pro)
                     if (!currentUser.IsPro)
                     {
-                        var daysActive = (DateTime.UtcNow - currentUser.CreatedAt).TotalDays;
+                        var daysActive = (DateTime.UtcNow.AddHours(-3) - currentUser.CreatedAt).TotalDays;
                         if (daysActive > 7)
                         {
                             var paywallMsg = "😿 *Seu período de Avaliação de 7 dias acabou...*\n" +
@@ -105,7 +105,7 @@ public class WebhookBackgroundService : BackgroundService
                     if (text == "grafico")
                     {
                         var endDate = DateTime.UtcNow.AddHours(-3); // Horário de Brasília
-                        var meals = await mealRepository.GetWeeklyMealsAsync(currentUser.Id, DateTime.UtcNow, stoppingToken);
+                        var meals = await mealRepository.GetWeeklyMealsAsync(currentUser.Id, endDate, stoppingToken);
 
                         if (!meals.Any())
                         {
@@ -222,7 +222,7 @@ public class WebhookBackgroundService : BackgroundService
                     }
                     if (text == "resumo")
                     {
-                        var meals = await mealRepository.GetDailyMealsAsync(currentUser.Id, DateTime.UtcNow, stoppingToken);
+                        var meals = await mealRepository.GetDailyMealsAsync(currentUser.Id, DateTime.UtcNow.AddHours(-3), stoppingToken);
                         if (!meals.Any())
                         {
                             await messagingService.SendMessageAsync(payload.UserPhoneNumber, "Você ainda não registrou nenhuma refeição hoje.", stoppingToken);

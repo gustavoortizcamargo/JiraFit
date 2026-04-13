@@ -34,6 +34,6 @@ public class Meal
         Carbs = carbs;
         Fats = fats;
         AiFeedback = aiFeedback;
-        Timestamp = DateTime.UtcNow;
+        Timestamp = DateTime.UtcNow.AddHours(-3);
     }
 }
