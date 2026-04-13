@@ -254,7 +254,6 @@ public class WebhookBackgroundService : BackgroundService
                             await mealRepository.SaveChangesAsync(stoppingToken);
 
                             // Streak logic (Brasília timezone constraint)
-                            var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
                             currentUser.RegisterActivity(DateTime.UtcNow.AddHours(-3));
                             await userRepository.SaveChangesAsync(stoppingToken);
 
