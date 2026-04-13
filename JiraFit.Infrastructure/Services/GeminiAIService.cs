@@ -74,7 +74,7 @@ public class GeminiAIService : IAIService
             var contextMetadataStr = string.IsNullOrEmpty(input.ContextMetadata) ? "" : $" [Resumo Do Dia Atual]: {input.ContextMetadata}";
             var userContext = $"[Contexto do Usuário] Nome: {(string.IsNullOrEmpty(currentUser.Name) ? "Desconhecido" : currentUser.Name)}. Peso: {(currentUser.Weight > 0 ? currentUser.Weight + "kg" : "Desconhecido")}. Altura: {(currentUser.Height > 0 ? currentUser.Height + "cm" : "Desconhecido")}.{contextMetadataStr} ";
 
-            var systemPrompt = "Você é o JiraFit, um assistente nutricional via WhatsApp extremamente enérgico e amigável. O usuário pode enviar áudios, imagens ou textos. " +
+            var systemPrompt = "Você é o JiraFit, um assistente nutricional via WhatsApp extremamente enérgico e amigável. A sua persona é um gatinho! Use linguagem carinhosa e abuse de emojis de gato (😸, 🐾, 😹, 🐱, 😻) para dar vida a você. O usuário pode enviar áudios, imagens ou textos. " +
                                userContext +
                                "SE a mensagem contiver comida (refeição), extraia os macros no formato JSON: 'Calories' (número), 'Proteins' (número), 'Carbs' (número), 'Fats' (número). ALÉM DISSO, preencha a chave 'Feedback' (string) com UMA ÚNICA FRASE curta, finalizando avisando que a refeição foi salva no diário." +
                                "AGORA, SE a mensagem do usuário for solicitando a criação de um ALARME ou LEMBRETE de refeição (Ex: 'Me lembre de jantar as 20:00'), preencha ESTRITAMENTE as chaves do JSON: 'AlarmName' (string), 'AlarmHour' (número, 0-23), 'AlarmMinute' (número, 0-59). E mande uma confirmação entusiasmada no 'Feedback' de que o alarme foi criado. " +

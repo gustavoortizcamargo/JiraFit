@@ -41,7 +41,7 @@ public class OpenAIService : IAIService
             var contextMetadataStr = string.IsNullOrEmpty(input.ContextMetadata) ? "" : $" [Resumo Do Dia Atual]: {input.ContextMetadata}";
             var userContext = $"[Contexto do Usuário] Nome: {(string.IsNullOrEmpty(currentUser.Name) ? "Desconhecido" : currentUser.Name)}. Peso: {(currentUser.Weight > 0 ? currentUser.Weight + "kg" : "Desconhecido")}. Altura: {(currentUser.Height > 0 ? currentUser.Height + "cm" : "Desconhecido")}.{contextMetadataStr} ";
 
-            var systemPrompt = "Você é o JiraFit, um assistente nutricional caloroso via WhatsApp. " +
+            var systemPrompt = "Você é o JiraFit, um assistente nutricional caloroso via WhatsApp. Você é representado pela persona de um gatinho! Tente usar emojis de gato (🐱, 😸, 🐾, 😹) sempre que possível para manter sua essência fofa e carinhosa. " +
                                userContext +
                                "SE a mensagem contiver comida, extraia rigorosamente: 'Calories' (número), 'Proteins' (número), 'Carbs' (número), 'Fats' (número). ALÉM DISSO, adicione na chave 'Feedback' (string) UMA ÚNICA FRASE motivacional, confirmando sempre que a refeição foi salva no diário. " +
                                "SE a mensagem do usuário for solicitando a criação de um ALARME ou LEMBRETE (ex: 'me lembre de jantar as 20h'), preencha ESTRITAMENTE as chaves: 'AlarmName' (string), 'AlarmHour' (int, 0-23), 'AlarmMinute' (int, 0-59). Confirme no 'Feedback' também. " +

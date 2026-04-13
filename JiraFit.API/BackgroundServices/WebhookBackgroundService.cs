@@ -52,9 +52,9 @@ public class WebhookBackgroundService : BackgroundService
                     
                     if (text == "ajuda")
                     {
-                        var msg = "🤖 *Guia Rápido do JiraFit*\n" +
+                        var msg = "😸 *Guia Rápido do JiraFit*\n" +
                                   "Seu Personal Nutricional no WhatsApp! Veja como extrair o máximo:\n\n" +
-                                  "📋 *Comandos Específicos:*\n" +
+                                  "🐾 *Comandos Específicos:*\n" +
                                   "• `sugestao` ➜ A IA avalia exatamente as calorias/proteínas que faltam pro seu dia hoje e prescreve o que você deve comer de jantar!\n" +
                                   "• `resumo` ➜ Traz a lista e somatória calórica do seu dia.\n" +
                                   "• `grafico` ➜ Envia a imagem do seu gráfico calórico dos últimos 7 dias.\n" +
@@ -145,10 +145,10 @@ public class WebhookBackgroundService : BackgroundService
                         }
                         else
                         {
-                            var msg = "⏰ *Seus Lembretes Ativos:*\n\n";
+                            var msg = "🙀 *Seus Lembretes Ativos:*\n\n";
                             foreach (var a in activeAlarms)
                             {
-                                msg += $"• ID `{a.Id.ToString().Substring(0, 4)}` - {a.Name} às {a.Hour:D2}:{a.Minute:D2}\n";
+                                msg += $"🐾 ID `{a.Id.ToString().Substring(0, 4)}` - {a.Name} às {a.Hour:D2}:{a.Minute:D2}\n";
                             }
                             msg += "\n*Dica*: Para apagar, envie: `apagar alarme [ID]` (Ex: apagar alarme a1b2)";
                             await messagingService.SendMessageAsync(payload.UserPhoneNumber, msg, stoppingToken);
@@ -204,16 +204,16 @@ public class WebhookBackgroundService : BackgroundService
                             
                             var targetTdee = currentUser.Tdee > 0 ? $"{currentUser.Tdee:F0}" : "?";
                             
-                            var msg = $"📊 *Resumo do seu Dia:*\n\n" +
+                            var msg = $"😸 *Resumo do seu Dia:*\n\n" +
                                       $"Calorias: {totalCals:F0} / {targetTdee} kcal\n\n" +
                                       $"🥩 Proteínas: {totalProt:F0}g\n" +
                                       $"🥖 Carboidratos: {totalCarbs:F0}g\n" +
                                       $"🥑 Gorduras: {totalFats:F0}g\n\n" +
-                                      $"*Refeições gravadas hoje ({meals.Count}):*\n";
+                                      $"*Refeições rastreadas pelo Jira ({meals.Count}):*\n";
                                       
                             foreach(var m in meals)
                             {
-                                msg += $"• {m.Calories:F0} kcal às {m.Timestamp:HH:mm}h\n";
+                                msg += $"🐾 {m.Calories:F0} kcal às {m.Timestamp:HH:mm}h\n";
                             }
                             await messagingService.SendMessageAsync(payload.UserPhoneNumber, msg, stoppingToken);
                         }
@@ -288,10 +288,10 @@ public class WebhookBackgroundService : BackgroundService
                                 : analysis.Feedback;
 
                             var streakMsg = currentUser.CurrentStreak > 1 
-                                ? $"🔥 *Ofensiva Diária*: {currentUser.CurrentStreak} dias sem errar o foco!" 
-                                : $"🔥 *Ofensiva Iniciada*: 1° dia gravado com sucesso!";
+                                ? $"🔥 *Ofensiva Diária*: {currentUser.CurrentStreak} dias sem arranhar o foco!" 
+                                : $"🔥 *Ofensiva Iniciada*: 1° dia gravado com sucesso! Miau!";
 
-                            responseMsg = $"🥘 *Refeição Registrada:*\n\n" +
+                            responseMsg = $"😻 *Refeição Registrada:*\n\n" +
                                           $"🔥 Calorias: {analysis.Calories} kcal\n" +
                                           $"🥩 Proteínas: {analysis.Proteins}g\n" +
                                           $"🥖 Carboidratos: {analysis.Carbs}g\n" +
@@ -307,7 +307,7 @@ public class WebhookBackgroundService : BackgroundService
 
                         if (string.IsNullOrWhiteSpace(responseMsg))
                         {
-                            responseMsg = "✅ Dados processados e salvos com sucesso! O que vamos comer agora?";
+                            responseMsg = "✅ Dados processados e salvos com sucesso! O que vamos comer agora, miau?";
                         }
 
                         await messagingService.SendMessageAsync(payload.UserPhoneNumber, responseMsg, stoppingToken);
