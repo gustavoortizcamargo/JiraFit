@@ -222,14 +222,24 @@ public class WebhookBackgroundService : BackgroundService
 
                     // 3. Modo Sugestão Tática
                     bool isSuggestionMode = false;
-                    if (text == "sugestao" || text == "sugestão")
+                    string targetIngredients = "";
+                    
+                    if (text == "sugestao" || text == "sugestão" || text.StartsWith("sugestao ") || text.StartsWith("sugestão "))
                     {
                         if (currentUser.Tdee <= 0)
                         {
                             await messagingService.SendMessageAsync(payload.UserPhoneNumber, "⚠️ Para que eu não prejudique sua saúde, me fale seu *Peso atual* e *Altura* em uma mensagem para eu calcular a sua Meta Diária primeiro!", stoppingToken);
                             continue;
                         }
-                        payload.TextContent = $"Por favor, me sugira MÁGICAMENTE uma receita deliciosa que preencha ESTRITAMENTE as calorias que ainda me faltam hoje. Liste-a.";
+
+                        if (text.StartsWith("sugestao ")) targetIngredients = text.Substring(9).Trim();
+                        else if (text.StartsWith("sugestão ")) targetIngredients = text.Substring(9).Trim();
+
+                        var ingredientsRule = string.IsNullOrEmpty(targetIngredients) 
+                            ? "" 
+                            : $" IMPORTANTE: Você deve criar a receita usando PRIORITARIAMENTE os seguintes ingredientes que eu tenho em casa: {targetIngredients}.";
+
+                        payload.TextContent = $"Por favor, me sugira MÁGICAMENTE uma receita deliciosa que preencha ESTRITAMENTE as calorias que ainda me faltam hoje.{ingredientsRule} Liste-a detalhadamente.";
                         isSuggestionMode = true;
                         payload.IsSuggestionRequest = true;
                     }
