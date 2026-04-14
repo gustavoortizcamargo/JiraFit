@@ -1,6 +1,7 @@
 using JiraFit.Application.DTOs;
 using JiraFit.Application.Interfaces;
 using JiraFit.Domain.Entities;
+using JiraFit.Domain.Enums;
 using JiraFit.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -94,6 +95,70 @@ public class DashboardService : IDashboardService
         {
             return null;
         }
+    }
+
+    // ─── PROFILE & EDITS ──────────────────
+    public async Task<bool> UpdateProfileAsync(Guid userId, UpdateProfileRequestDto request, CancellationToken ct = default)
+    {
+        var user = await _context.Users.FindAsync(new object[] { userId }, ct);
+        if (user == null) return false;
+
+        Gender? gender = null;
+        if (!string.IsNullOrEmpty(request.Gender) && Enum.TryParse<Gender>(request.Gender, true, out var g))
+            gender = g;
+
+        Objective? objective = null;
+        if (!string.IsNullOrEmpty(request.Objective) && Enum.TryParse<Objective>(request.Objective, true, out var o))
+            objective = o;
+
+        user.UpdateProfile(request.Name, request.Weight, request.Height, request.Age, gender, objective);
+        await _context.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<MealSummaryDto> CreateMealAsync(Guid userId, CreateMealRequestDto request, CancellationToken ct = default)
+    {
+        var user = await _context.Users.FindAsync(new object[] { userId }, ct)
+            ?? throw new InvalidOperationException("Usuário não encontrado.");
+
+        var meal = new Meal(
+            userId,
+            null, // ImageUrl
+            request.Description,
+            request.Calories,
+            request.Proteins,
+            request.Carbs,
+            request.Fats,
+            null, // AiFeedback
+            request.Timestamp ?? DateTime.UtcNow.AddHours(-3)
+        );
+
+        await _context.Meals.AddAsync(meal, ct);
+        user.RegisterActivity(meal.Timestamp);
+        await _context.SaveChangesAsync(ct);
+
+        return new MealSummaryDto
+        {
+            Id = meal.Id,
+            UserId = meal.UserId,
+            UserName = user.Name,
+            Calories = meal.Calories,
+            Proteins = meal.Proteins,
+            Carbs = meal.Carbs,
+            Fats = meal.Fats,
+            RawText = meal.RawText,
+            Timestamp = meal.Timestamp
+        };
+    }
+
+    public async Task<bool> UpdateMealAsync(Guid mealId, UpdateMealRequestDto request, CancellationToken ct = default)
+    {
+        var meal = await _context.Meals.FindAsync(new object[] { mealId }, ct);
+        if (meal == null) return false;
+
+        meal.Update(request.Description, request.Calories, request.Proteins, request.Carbs, request.Fats, request.Timestamp);
+        await _context.SaveChangesAsync(ct);
+        return true;
     }
 
     // ─── USERS ────────────────────────────
@@ -247,13 +312,13 @@ public class DashboardService : IDashboardService
         var user = await _context.Users.Where(u => u.Id == userId)
             .Select(u => new { u.Tdee, u.Name }).FirstOrDefaultAsync(ct);
 
-        var totalCals = meals.Sum(m => m.Calories);
+        var totalCals = (double)meals.Sum(m => m.Calories);
         return new DailySummaryDto
         {
             UserId = userId, UserName = user?.Name,
             Date = targetDate.ToString("yyyy-MM-dd"),
-            TotalCalories = totalCals, TotalProteins = meals.Sum(m => m.Proteins),
-            TotalCarbs = meals.Sum(m => m.Carbs), TotalFats = meals.Sum(m => m.Fats),
+            TotalCalories = totalCals, TotalProteins = (double)meals.Sum(m => m.Proteins),
+            TotalCarbs = (double)meals.Sum(m => m.Carbs), TotalFats = (double)meals.Sum(m => m.Fats),
             CalorieGoal = user?.Tdee ?? 0, RemainingCalories = (user?.Tdee ?? 0) - totalCals,
             MealCount = meals.Count, Meals = meals
         };
@@ -272,8 +337,8 @@ public class DashboardService : IDashboardService
             .Select(g => new DayBreakdownDto
             {
                 Date = g.Key.ToString("yyyy-MM-dd"),
-                TotalCalories = g.Sum(m => m.Calories), TotalProteins = g.Sum(m => m.Proteins),
-                TotalCarbs = g.Sum(m => m.Carbs), TotalFats = g.Sum(m => m.Fats),
+                TotalCalories = (double)g.Sum(m => m.Calories), TotalProteins = (double)g.Sum(m => m.Proteins),
+                TotalCarbs = (double)g.Sum(m => m.Carbs), TotalFats = (double)g.Sum(m => m.Fats),
                 MealCount = g.Count()
             })
             .OrderBy(d => d.Date).ToList();
@@ -375,6 +440,38 @@ public class DashboardService : IDashboardService
         var alarm = await _context.MealAlarms.FindAsync(new object[] { id }, ct);
         if (alarm == null) return false;
         _context.MealAlarms.Remove(alarm);
+        await _context.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<AlarmSummaryDto> CreateAlarmAsync(Guid userId, CreateAlarmRequestDto request, CancellationToken ct = default)
+    {
+        var user = await _context.Users.FindAsync(new object[] { userId }, ct)
+            ?? throw new InvalidOperationException("Usuário não encontrado.");
+
+        var alarm = new MealAlarm(userId, request.Name, request.Hour, request.Minute);
+        await _context.MealAlarms.AddAsync(alarm, ct);
+        await _context.SaveChangesAsync(ct);
+
+        return new AlarmSummaryDto
+        {
+            Id = alarm.Id,
+            UserId = alarm.UserId,
+            UserName = user.Name,
+            UserPhone = user.PhoneNumber,
+            Name = alarm.Name,
+            Hour = alarm.Hour,
+            Minute = alarm.Minute,
+            IsActive = alarm.IsActive
+        };
+    }
+
+    public async Task<bool> UpdateAlarmAsync(Guid alarmId, UpdateAlarmRequestDto request, CancellationToken ct = default)
+    {
+        var alarm = await _context.MealAlarms.FindAsync(new object[] { alarmId }, ct);
+        if (alarm == null) return false;
+
+        alarm.Update(request.Name, request.Hour, request.Minute, request.IsActive);
         await _context.SaveChangesAsync(ct);
         return true;
     }

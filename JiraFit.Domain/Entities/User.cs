@@ -95,11 +95,14 @@ public class User
         IsPro = false; // Start on Free Tier
     }
 
-    public void UpdateProfile(string? name, double? weight, double? height)
+    public void UpdateProfile(string? name, double? weight, double? height, int? age, Gender? gender, Objective? objective)
     {
         if (!string.IsNullOrEmpty(name)) Name = name;
         if (weight.HasValue && weight > 0) Weight = weight.Value;
         if (height.HasValue && height > 0) Height = height.Value;
+        if (age.HasValue && age > 0) Age = age.Value;
+        if (gender.HasValue) Gender = gender.Value;
+        if (objective.HasValue) Objective = objective.Value;
 
         if (Weight > 0 && Height > 0)
         {

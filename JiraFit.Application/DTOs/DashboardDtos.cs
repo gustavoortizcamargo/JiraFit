@@ -95,6 +95,42 @@ public class MealStatsDto
     public double AvgCaloriesPerMeal { get; set; }
 }
 
+// ─── Input DTOs (Dashboard Edits) ────────────────────────
+public class UpdateProfileRequestDto
+{
+    public string? Name { get; set; }
+    public double? Weight { get; set; }
+    public double? Height { get; set; }
+    public int? Age { get; set; }
+    public string? Gender { get; set; } // "Male" / "Female"
+    public string? Objective { get; set; } // "WeightLoss", "MuscleGain", "Maintenance"
+}
+
+public class CreateMealRequestDto
+{
+    public string Description { get; set; } = string.Empty;
+    public double Calories { get; set; }
+    public double Proteins { get; set; }
+    public double Carbs { get; set; }
+    public double Fats { get; set; }
+    public DateTime? Timestamp { get; set; } // null = now
+}
+
+public class UpdateMealRequestDto : CreateMealRequestDto { }
+
+// ─── Alarm Input DTOs ──────────────────────
+public class CreateAlarmRequestDto
+{
+    public string Name { get; set; } = string.Empty;
+    public int Hour { get; set; }
+    public int Minute { get; set; }
+}
+
+public class UpdateAlarmRequestDto : CreateAlarmRequestDto
+{
+    public bool? IsActive { get; set; }
+}
+
 // ─── Alarm DTOs ────────────────────────────
 public class AlarmSummaryDto
 {

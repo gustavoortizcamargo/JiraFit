@@ -302,7 +302,7 @@ public class WebhookBackgroundService : BackgroundService
                         // Onboarding updates:
                         if (!string.IsNullOrEmpty(analysis.ExtractedName) || analysis.ExtractedWeight > 0 || analysis.ExtractedHeight > 0)
                         {
-                            currentUser.UpdateProfile(analysis.ExtractedName, analysis.ExtractedWeight, analysis.ExtractedHeight);
+                            currentUser.UpdateProfile(analysis.ExtractedName, analysis.ExtractedWeight, analysis.ExtractedHeight, null, null, null);
                             await userRepository.SaveChangesAsync(stoppingToken);
                         }
 

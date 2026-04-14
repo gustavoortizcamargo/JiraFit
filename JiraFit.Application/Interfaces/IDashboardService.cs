@@ -12,6 +12,11 @@ public interface IDashboardService
     Task<DashboardUser?> VerifyCodeAsync(Guid dashboardUserId, string code, CancellationToken ct = default);
     Task<string?> ResendVerificationCodeAsync(Guid dashboardUserId, CancellationToken ct = default);
 
+    // Profile & Edits
+    Task<bool> UpdateProfileAsync(Guid userId, UpdateProfileRequestDto request, CancellationToken ct = default);
+    Task<MealSummaryDto> CreateMealAsync(Guid userId, CreateMealRequestDto request, CancellationToken ct = default);
+    Task<bool> UpdateMealAsync(Guid mealId, UpdateMealRequestDto request, CancellationToken ct = default);
+
     // Users
     Task<(int Total, List<UserSummaryDto> Data)> GetUsersAsync(int page, int pageSize, bool? isPro, CancellationToken ct = default);
     Task<UserDetailDto?> GetUserByIdAsync(Guid id, CancellationToken ct = default);
@@ -32,6 +37,8 @@ public interface IDashboardService
     Task<(int Total, List<AlarmSummaryDto> Data)> GetAlarmsAsync(Guid? userId, bool? isActive, int page, int pageSize, CancellationToken ct = default);
     Task<AlarmSummaryDto?> GetAlarmByIdAsync(Guid id, CancellationToken ct = default);
     Task<(int Total, List<AlarmSummaryDto> Data)> GetAlarmsByUserAsync(Guid userId, CancellationToken ct = default);
+    Task<AlarmSummaryDto> CreateAlarmAsync(Guid userId, CreateAlarmRequestDto request, CancellationToken ct = default);
+    Task<bool> UpdateAlarmAsync(Guid alarmId, UpdateAlarmRequestDto request, CancellationToken ct = default);
     Task<bool> ToggleAlarmAsync(Guid id, CancellationToken ct = default);
     Task<bool> DeleteAlarmAsync(Guid id, CancellationToken ct = default);
 }

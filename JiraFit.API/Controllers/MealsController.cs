@@ -1,3 +1,4 @@
+using JiraFit.Application.DTOs;
 using JiraFit.Application.Interfaces;
 using JiraFit.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -96,5 +97,37 @@ public class MealsController : ScopedControllerBase
 
         var ok = await _service.DeleteMealAsync(id, ct);
         return ok ? Ok(new { message = "Refeição removida." }) : NotFound(new { message = "Refeição não encontrada." });
+    }
+    /// <summary>
+    /// POST /api/meals — Manually register a meal (scoped to the logged-in user).
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> CreateMeal([FromBody] CreateMealRequestDto request, CancellationToken ct)
+    {
+        var userId = await GetLinkedUserIdAsync(ct);
+        if (userId == null)
+            return NotFound(new { message = "Conta não vinculada a perfil WhatsApp." });
+
+        var meal = await _service.CreateMealAsync(userId.Value, request, ct);
+        return CreatedAtAction(nameof(GetById), new { id = meal.Id }, meal);
+    }
+
+    /// <summary>
+    /// PATCH /api/meals/{id} — Update facts of one of MY meals.
+    /// </summary>
+    [HttpPatch("{id:guid}")]
+    public async Task<IActionResult> UpdateMeal(Guid id, [FromBody] UpdateMealRequestDto request, CancellationToken ct)
+    {
+        var userId = await GetLinkedUserIdAsync(ct);
+        if (userId == null)
+            return NotFound(new { message = "Conta não vinculada a perfil WhatsApp." });
+
+        // Verify ownership
+        var meal = await _service.GetMealByIdAsync(id, ct);
+        if (meal is null || meal.UserId != userId.Value)
+            return NotFound(new { message = "Refeição não encontrada." });
+
+        var ok = await _service.UpdateMealAsync(id, request, ct);
+        return ok ? NoContent() : NotFound();
     }
 }

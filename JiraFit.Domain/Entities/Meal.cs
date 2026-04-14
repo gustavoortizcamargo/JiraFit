@@ -36,4 +36,14 @@ public class Meal
         AiFeedback = aiFeedback;
         Timestamp = customTimestamp ?? DateTime.UtcNow.AddHours(-3);
     }
+
+    public void Update(string description, double calories, double proteins, double carbs, double fats, DateTime? timestamp)
+    {
+        RawText = description;
+        Calories = calories;
+        Proteins = proteins;
+        Carbs = carbs;
+        Fats = fats;
+        if (timestamp.HasValue) Timestamp = timestamp.Value;
+    }
 }

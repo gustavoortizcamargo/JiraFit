@@ -36,4 +36,12 @@ public class MealAlarm
     {
         IsActive = isActive;
     }
+
+    public void Update(string name, int hour, int minute, bool? isActive)
+    {
+        Name = name;
+        Hour = hour;
+        Minute = minute;
+        if (isActive.HasValue) IsActive = isActive.Value;
+    }
 }
