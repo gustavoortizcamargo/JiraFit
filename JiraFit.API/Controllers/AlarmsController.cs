@@ -1,59 +1,82 @@
 using JiraFit.Application.Interfaces;
-using Microsoft.AspNetCore.Authorization;
+using JiraFit.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JiraFit.API.Controllers;
 
-[ApiController]
 [Route("api/[controller]")]
-[Authorize]
-public class AlarmsController : ControllerBase
+public class AlarmsController : ScopedControllerBase
 {
     private readonly IDashboardService _service;
-    private const int MaxPageSize = 100;
 
-    public AlarmsController(IDashboardService service)
+    public AlarmsController(IDashboardService service, AppDbContext context) : base(context)
     {
         _service = service;
     }
 
+    /// <summary>
+    /// GET /api/alarms — List MY alarms.
+    /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll(
-        [FromQuery] Guid? userId = null,
-        [FromQuery] bool? isActive = null,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50,
-        CancellationToken ct = default)
+    public async Task<IActionResult> GetMyAlarms(CancellationToken ct)
     {
-        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
-        var (total, data) = await _service.GetAlarmsAsync(userId, isActive, page, pageSize, ct);
-        return Ok(new { total, page, pageSize, data });
+        var userId = await GetLinkedUserIdAsync(ct);
+        if (userId == null)
+            return NotFound(new { message = "Conta não vinculada a perfil WhatsApp." });
+
+        var (total, data) = await _service.GetAlarmsByUserAsync(userId.Value, ct);
+        return Ok(new { total, data });
     }
 
+    /// <summary>
+    /// GET /api/alarms/{id} — Get a specific alarm (only if mine).
+    /// </summary>
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
+        var userId = await GetLinkedUserIdAsync(ct);
+        if (userId == null)
+            return NotFound(new { message = "Conta não vinculada a perfil WhatsApp." });
+
         var alarm = await _service.GetAlarmByIdAsync(id, ct);
-        return alarm is null ? NotFound(new { message = "Alarme não encontrado." }) : Ok(alarm);
+        if (alarm is null || alarm.UserId != userId.Value)
+            return NotFound(new { message = "Alarme não encontrado." });
+
+        return Ok(alarm);
     }
 
-    [HttpGet("user/{userId:guid}")]
-    public async Task<IActionResult> GetByUser(Guid userId, CancellationToken ct)
-    {
-        var (total, data) = await _service.GetAlarmsByUserAsync(userId, ct);
-        return Ok(new { userId, total, data });
-    }
-
+    /// <summary>
+    /// PATCH /api/alarms/{id}/toggle — Toggle one of MY alarms.
+    /// </summary>
     [HttpPatch("{id:guid}/toggle")]
     public async Task<IActionResult> Toggle(Guid id, CancellationToken ct)
     {
+        var userId = await GetLinkedUserIdAsync(ct);
+        if (userId == null)
+            return NotFound(new { message = "Conta não vinculada a perfil WhatsApp." });
+
+        var alarm = await _service.GetAlarmByIdAsync(id, ct);
+        if (alarm is null || alarm.UserId != userId.Value)
+            return NotFound(new { message = "Alarme não encontrado." });
+
         var ok = await _service.ToggleAlarmAsync(id, ct);
         return ok ? Ok(new { message = "Status do alarme alterado." }) : NotFound(new { message = "Alarme não encontrado." });
     }
 
+    /// <summary>
+    /// DELETE /api/alarms/{id} — Delete one of MY alarms.
+    /// </summary>
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
+        var userId = await GetLinkedUserIdAsync(ct);
+        if (userId == null)
+            return NotFound(new { message = "Conta não vinculada a perfil WhatsApp." });
+
+        var alarm = await _service.GetAlarmByIdAsync(id, ct);
+        if (alarm is null || alarm.UserId != userId.Value)
+            return NotFound(new { message = "Alarme não encontrado." });
+
         var ok = await _service.DeleteAlarmAsync(id, ct);
         return ok ? Ok(new { message = "Alarme removido." }) : NotFound(new { message = "Alarme não encontrado." });
     }
