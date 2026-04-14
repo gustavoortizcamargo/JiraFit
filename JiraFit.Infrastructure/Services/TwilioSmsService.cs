@@ -39,7 +39,11 @@ public class TwilioSmsService : ISmsService
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authHeaderValue);
 
             // Strip "whatsapp:" prefix if present — SMS uses raw phone numbers
-            var smsTo = toPhoneNumber.Replace("whatsapp:", "");
+            var smsTo = toPhoneNumber.Replace("whatsapp:", "").Trim();
+
+            // Normalize to E.164 format (+55 for Brazil)
+            if (!smsTo.StartsWith("+"))
+                smsTo = "+55" + smsTo;
 
             var requestData = new Dictionary<string, string>
             {
