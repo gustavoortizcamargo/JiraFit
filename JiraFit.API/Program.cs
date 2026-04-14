@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using FluentValidation;
 using JiraFit.API.BackgroundServices;
 using JiraFit.API.Middlewares;
@@ -7,8 +8,10 @@ using JiraFit.Infrastructure.Data;
 using JiraFit.Infrastructure.Repositories;
 using JiraFit.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +22,25 @@ builder.WebHost.UseUrls($"http://*:{port}");
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "JiraFit API", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // Infrastructure - EF Core
 var connectionUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
@@ -88,6 +109,33 @@ else
 }
 
 builder.Services.AddScoped<IMessagingService, TwilioMessagingService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+
+// Rate Limiting (60 requests per minute per IP)
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.AddFixedWindowLimiter("fixed", opt =>
+    {
+        opt.PermitLimit = 60;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueLimit = 0;
+    });
+});
+
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Dashboard", policy =>
+    {
+        var allowedOrigins = builder.Configuration["Cors:AllowedOrigins"] ?? "*";
+        if (allowedOrigins == "*")
+            policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+        else
+            policy.WithOrigins(allowedOrigins.Split(','))
+                  .AllowAnyMethod().AllowAnyHeader().AllowCredentials();
+    });
+});
 
 // Validators
 builder.Services.AddValidatorsFromAssembly(typeof(JiraFit.Application.DTOs.UserRegistrationDto).Assembly);
@@ -113,12 +161,11 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
+app.UseCors("Dashboard");
+app.UseRateLimiter();
 app.UseRouting();
 
 // Apply Twilio Signature Middleware specific to the webhook

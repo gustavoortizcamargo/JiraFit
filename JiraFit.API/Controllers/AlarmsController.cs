@@ -1,134 +1,60 @@
-using JiraFit.Infrastructure.Data;
+using JiraFit.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace JiraFit.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class AlarmsController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IDashboardService _service;
+    private const int MaxPageSize = 100;
 
-    public AlarmsController(AppDbContext context)
+    public AlarmsController(IDashboardService service)
     {
-        _context = context;
+        _service = service;
     }
 
-    // GET /api/alarms?userId=...&isActive=true
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] Guid? userId = null,
         [FromQuery] bool? isActive = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
-        var query = _context.MealAlarms.Include(a => a.User).AsQueryable();
-
-        if (userId.HasValue)
-            query = query.Where(a => a.UserId == userId.Value);
-        if (isActive.HasValue)
-            query = query.Where(a => a.IsActive == isActive.Value);
-
-        var total = await query.CountAsync(cancellationToken);
-        var alarms = await query
-            .OrderBy(a => a.Hour).ThenBy(a => a.Minute)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(a => new
-            {
-                a.Id,
-                a.UserId,
-                UserName = a.User != null ? a.User.Name : null,
-                UserPhone = a.User != null ? a.User.PhoneNumber : null,
-                a.Name,
-                a.Hour,
-                a.Minute,
-                a.IsActive,
-                a.LastTriggeredAt
-            })
-            .ToListAsync(cancellationToken);
-
-        return Ok(new { total, page, pageSize, data = alarms });
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+        var (total, data) = await _service.GetAlarmsAsync(userId, isActive, page, pageSize, ct);
+        return Ok(new { total, page, pageSize, data });
     }
 
-    // GET /api/alarms/{id}
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
-        var alarm = await _context.MealAlarms
-            .Include(a => a.User)
-            .Where(a => a.Id == id)
-            .Select(a => new
-            {
-                a.Id,
-                a.UserId,
-                UserName = a.User != null ? a.User.Name : null,
-                UserPhone = a.User != null ? a.User.PhoneNumber : null,
-                a.Name,
-                a.Hour,
-                a.Minute,
-                a.IsActive,
-                a.LastTriggeredAt
-            })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (alarm == null)
-            return NotFound(new { message = "Alarme não encontrado." });
-
-        return Ok(alarm);
+        var alarm = await _service.GetAlarmByIdAsync(id, ct);
+        return alarm is null ? NotFound(new { message = "Alarme não encontrado." }) : Ok(alarm);
     }
 
-    // GET /api/alarms/user/{userId}
     [HttpGet("user/{userId:guid}")]
-    public async Task<IActionResult> GetByUser(Guid userId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetByUser(Guid userId, CancellationToken ct)
     {
-        var alarms = await _context.MealAlarms
-            .Where(a => a.UserId == userId)
-            .OrderBy(a => a.Hour).ThenBy(a => a.Minute)
-            .Select(a => new
-            {
-                a.Id,
-                a.Name,
-                a.Hour,
-                a.Minute,
-                a.IsActive,
-                a.LastTriggeredAt
-            })
-            .ToListAsync(cancellationToken);
-
-        return Ok(new { userId, total = alarms.Count, data = alarms });
+        var (total, data) = await _service.GetAlarmsByUserAsync(userId, ct);
+        return Ok(new { userId, total, data });
     }
 
-    // PATCH /api/alarms/{id}/toggle
     [HttpPatch("{id:guid}/toggle")]
-    public async Task<IActionResult> Toggle(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Toggle(Guid id, CancellationToken ct)
     {
-        var alarm = await _context.MealAlarms.FindAsync(new object[] { id }, cancellationToken);
-        if (alarm == null)
-            return NotFound(new { message = "Alarme não encontrado." });
-
-        // Toggle IsActive via reflection-safe workaround
-        var prop = typeof(JiraFit.Domain.Entities.MealAlarm).GetProperty("IsActive");
-        prop?.SetValue(alarm, !alarm.IsActive);
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return Ok(new { message = $"Alarme '{alarm.Name}' está agora {(alarm.IsActive ? "ativo" : "inativo")}.", isActive = alarm.IsActive });
+        var ok = await _service.ToggleAlarmAsync(id, ct);
+        return ok ? Ok(new { message = "Status do alarme alterado." }) : NotFound(new { message = "Alarme não encontrado." });
     }
 
-    // DELETE /api/alarms/{id}
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var alarm = await _context.MealAlarms.FindAsync(new object[] { id }, cancellationToken);
-        if (alarm == null)
-            return NotFound(new { message = "Alarme não encontrado." });
-
-        _context.MealAlarms.Remove(alarm);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return Ok(new { message = $"Alarme '{alarm.Name}' removido com sucesso." });
+        var ok = await _service.DeleteAlarmAsync(id, ct);
+        return ok ? Ok(new { message = "Alarme removido." }) : NotFound(new { message = "Alarme não encontrado." });
     }
 }

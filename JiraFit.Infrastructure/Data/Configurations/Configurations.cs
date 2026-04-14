@@ -50,3 +50,18 @@ public class MealAlarmConfiguration : IEntityTypeConfiguration<MealAlarm>
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+public class DashboardUserConfiguration : IEntityTypeConfiguration<DashboardUser>
+{
+    public void Configure(EntityTypeBuilder<DashboardUser> builder)
+    {
+        builder.HasKey(d => d.Id);
+
+        builder.Property(d => d.Email).IsRequired().HasMaxLength(256);
+        builder.HasIndex(d => d.Email).IsUnique();
+
+        builder.Property(d => d.PasswordHash).IsRequired();
+        builder.Property(d => d.PhoneNumber).IsRequired().HasMaxLength(50);
+        builder.Property(d => d.Role).IsRequired().HasMaxLength(20).HasDefaultValue("User");
+    }
+}

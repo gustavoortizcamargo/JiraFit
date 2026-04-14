@@ -8,6 +8,7 @@ public class AppDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Meal> Meals { get; set; }
     public DbSet<MealAlarm> MealAlarms { get; set; }
+    public DbSet<DashboardUser> DashboardUsers { get; set; }
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
