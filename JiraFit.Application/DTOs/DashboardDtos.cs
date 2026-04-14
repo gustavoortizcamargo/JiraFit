@@ -131,3 +131,20 @@ public class AuthResponseDto
     public Guid? LinkedUserId { get; set; }
     public DateTime ExpiresAt { get; set; }
 }
+
+public class RegisterPendingResponseDto
+{
+    public Guid DashboardUserId { get; set; }
+    public string Message { get; set; } = string.Empty;
+}
+
+public class VerifyCodeRequestDto
+{
+    public Guid DashboardUserId { get; set; }
+    public string Code { get; set; } = string.Empty;
+}
+
+public class ResendCodeRequestDto
+{
+    public Guid DashboardUserId { get; set; }
+}

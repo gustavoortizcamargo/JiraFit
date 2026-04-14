@@ -110,6 +110,7 @@ else
 
 builder.Services.AddScoped<IMessagingService, TwilioMessagingService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<ISmsService, TwilioSmsService>();
 
 // Rate Limiting (60 requests per minute per IP)
 builder.Services.AddRateLimiter(options =>

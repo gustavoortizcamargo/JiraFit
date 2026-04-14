@@ -19,3 +19,8 @@ public interface IWebhookProcessorService
     // The Webhook from Twilio is enqueued here to be processed in background
     ValueTask EnqueueWebhookPayloadAsync(MealInputDto payload, CancellationToken cancellationToken = default);
 }
+
+public interface ISmsService
+{
+    Task SendSmsAsync(string toPhoneNumber, string message, CancellationToken cancellationToken = default);
+}

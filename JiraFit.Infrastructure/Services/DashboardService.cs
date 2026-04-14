@@ -9,19 +9,25 @@ namespace JiraFit.Infrastructure.Services;
 public class DashboardService : IDashboardService
 {
     private readonly AppDbContext _context;
+    private readonly ISmsService _smsService;
 
-    public DashboardService(AppDbContext context)
+    public DashboardService(AppDbContext context, ISmsService smsService)
     {
         _context = context;
+        _smsService = smsService;
     }
 
-    // ─── AUTH ────────────────────────────
+    // ─── AUTH ────────────────────────
     public async Task<DashboardUser?> AuthenticateAsync(string email, string password, CancellationToken ct = default)
     {
         var user = await _context.DashboardUsers
             .FirstOrDefaultAsync(u => u.Email == email, ct);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+            return null;
+
+        // Block login if phone not verified
+        if (!user.IsVerified)
             return null;
 
         user.RecordLogin();
@@ -42,6 +48,52 @@ public class DashboardService : IDashboardService
         await _context.DashboardUsers.AddAsync(dashUser, ct);
         await _context.SaveChangesAsync(ct);
         return dashUser;
+    }
+
+    public async Task<string> SendVerificationCodeAsync(Guid dashboardUserId, CancellationToken ct = default)
+    {
+        var user = await _context.DashboardUsers.FindAsync(new object[] { dashboardUserId }, ct)
+            ?? throw new InvalidOperationException("Usuário não encontrado.");
+
+        var code = new Random().Next(100000, 999999).ToString();
+        user.SetVerificationCode(code, expirationMinutes: 10);
+        await _context.SaveChangesAsync(ct);
+
+        await _smsService.SendSmsAsync(
+            user.PhoneNumber,
+            $"🔐 JiraFit: Seu código de verificação é {code}. Válido por 10 minutos.",
+            ct);
+
+        return code;
+    }
+
+    public async Task<DashboardUser?> VerifyCodeAsync(Guid dashboardUserId, string code, CancellationToken ct = default)
+    {
+        var user = await _context.DashboardUsers.FindAsync(new object[] { dashboardUserId }, ct);
+        if (user == null) return null;
+
+        var isValid = user.ValidateVerificationCode(code);
+        if (!isValid) return null;
+
+        // Auto-link WhatsApp user on successful verification
+        var whatsappUser = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == user.PhoneNumber, ct);
+        if (whatsappUser != null)
+            user.LinkToWhatsAppUser(whatsappUser.Id);
+
+        await _context.SaveChangesAsync(ct);
+        return user;
+    }
+
+    public async Task<string?> ResendVerificationCodeAsync(Guid dashboardUserId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await SendVerificationCodeAsync(dashboardUserId, ct);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     // ─── USERS ────────────────────────────

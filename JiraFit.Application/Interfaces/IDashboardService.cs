@@ -8,6 +8,9 @@ public interface IDashboardService
     // Auth
     Task<DashboardUser?> AuthenticateAsync(string email, string password, CancellationToken ct = default);
     Task<DashboardUser> RegisterAsync(string email, string password, string phoneNumber, CancellationToken ct = default);
+    Task<string> SendVerificationCodeAsync(Guid dashboardUserId, CancellationToken ct = default);
+    Task<DashboardUser?> VerifyCodeAsync(Guid dashboardUserId, string code, CancellationToken ct = default);
+    Task<string?> ResendVerificationCodeAsync(Guid dashboardUserId, CancellationToken ct = default);
 
     // Users
     Task<(int Total, List<UserSummaryDto> Data)> GetUsersAsync(int page, int pageSize, bool? isPro, CancellationToken ct = default);
